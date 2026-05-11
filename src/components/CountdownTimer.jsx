@@ -16,14 +16,11 @@ function getTimeLeft(targetMs) {
 }
 
 function CountdownTimer({ targetDate }) {
-  const resolvedTargetMs = useMemo(() => {
-    if (targetDate) {
-      return new Date(targetDate).getTime()
-    }
-
-    // Default timer: 1 year from now.
-    return Date.now() + 365 * DAY
-  }, [targetDate])
+  const [defaultTargetMs] = useState(() => Date.now() + 365 * DAY)
+  const resolvedTargetMs = useMemo(
+    () => (targetDate ? new Date(targetDate).getTime() : defaultTargetMs),
+    [defaultTargetMs, targetDate],
+  )
 
   const [timeLeft, setTimeLeft] = useState(() => getTimeLeft(resolvedTargetMs))
 
