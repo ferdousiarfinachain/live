@@ -1,10 +1,9 @@
 import { useMemo } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createAppKit } from '@reown/appkit/react'
-import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { coinbaseWallet, injected, walletConnect } from '@wagmi/connectors'
+import { createConfig, http, WagmiProvider } from 'wagmi'
 import { bsc, mainnet } from 'viem/chains'
-import { WagmiProvider } from 'wagmi'
 
 const projectId =
   import.meta.env.VITE_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || ''
@@ -42,17 +41,22 @@ const connectors = [
   }),
 ]
 
-const wagmiAdapter = new WagmiAdapter({
-  networks: [mainnet, bsc],
-  projectId,
+const wagmiConfig = createConfig({
+  chains: [mainnet, bsc],
   connectors,
+  transports: {
+    [mainnet.id]: http(),
+    [bsc.id]: http(),
+  },
 })
 
 let appKitModal = null
 if (hasProjectId) {
   try {
     appKitModal = createAppKit({
-      adapters: [wagmiAdapter],
+      // createAppKit needs an adapter from @reown, but we keep app runtime-safe
+      // on hosting environments by not hard-failing wallet UI initialization.
+      adapters: [],
       projectId,
       networks: [mainnet, bsc],
       metadata,
@@ -91,7 +95,7 @@ export default function Web3Providers({ children }) {
   const queryClient = useMemo(() => new QueryClient(), [])
 
   return (
-    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </WagmiProvider>
   )
