@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useConnect } from 'wagmi'
-import appKitModal from './appKitModal'
 import './ConnectWalletModal.css'
 
 const MODAL_CLOSE_MS = 300
@@ -177,13 +176,7 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
     } catch (connectError) {
       if (isRejectedError(connectError)) {
         reset()
-        if (target === 'walletConnect') {
-          appKitModal?.close?.()
-        }
         return
-      }
-      if (target === 'walletConnect') {
-        appKitModal?.close?.()
       }
     } finally {
       walletConnectHandoffRef.current = false
