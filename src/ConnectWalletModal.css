@@ -1,3 +1,8 @@
+/* Reown mounts <w3m-modal> on document.body; force above our connect UI (stack up to ~12000). */
+w3m-modal {
+  z-index: 2147483000 !important;
+}
+
 .wallet-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -15,9 +20,9 @@
   animation: wallet-backdrop-fade-in 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Guide → Connect: connect opens on top while guide closes (same overlap idea as Don’t have a wallet). */
+/* While WalletConnect / AppKit opens, sit below AppKit (default z-index 9999) so QR and “All wallets” stay visible. */
 .wallet-modal-backdrop.wallet-modal-backdrop--handoff-under {
-  z-index: 11950;
+  z-index: 9980;
 }
 
 .wallet-modal-backdrop--closing {

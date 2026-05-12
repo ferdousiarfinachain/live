@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { coinbaseWallet, injected, walletConnect } from '@wagmi/connectors'
 import { createConfig, http, WagmiProvider } from 'wagmi'
 import { bsc, mainnet } from 'viem/chains'
+// WC ethereum-provider uses dynamic import('@reown/appkit/core'); static import so Vite bundles QR modal deps.
+import '@reown/appkit/core'
 
 const appName = 'Novex Labs'
 const appLogoUrl = 'https://walletconnect.com/walletconnect-logo.png'
@@ -40,6 +42,14 @@ if (walletConnectProjectId) {
       projectId: walletConnectProjectId,
       showQrModal: true,
       metadata: walletMetadata,
+      qrModalOptions: {
+        themeMode: 'dark',
+        enableExplorer: true,
+        // AppKit default z-index is 9999; our connect modal uses 12000 — without this, QR / wallet list stay hidden underneath.
+        themeVariables: {
+          '--wcm-z-index': '13000',
+        },
+      },
     }),
   )
 }

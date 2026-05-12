@@ -101,6 +101,8 @@ function resolveConnector(connectors, target) {
 
 export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
   const [isClosing, setIsClosing] = useState(false)
+  /** Lowers this backdrop below AppKit (z-index ~9999) while WC QR modal opens. */
+  const [walletConnectStackHandoff, setWalletConnectStackHandoff] = useState(false)
   const walletConnectHandoffRef = useRef(false)
   const closeTimerRef = useRef(null)
   const {
@@ -115,13 +117,21 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
   const activeConnectorId = variables?.connector?.id
   const visible = isOpen || isClosing
 
+  const hasWalletConnectConnector = useMemo(
+    () => Boolean(resolveConnector(connectors, 'walletConnect')),
+    [connectors],
+  )
+
   const errorMessage = useMemo(() => {
     if (!error) return ''
     return error.shortMessage || error.message || 'Wallet connection failed.'
   }, [error])
 
   useLayoutEffect(() => {
-    if (!visible) return undefined
+    if (!visible) {
+      setWalletConnectStackHandoff(false)
+      return undefined
+    }
 
     lockBodyScroll()
 
@@ -166,6 +176,9 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
     const connector = resolveConnector(connectors, target)
 
     if (!connector) {
+      if (target === 'walletConnect') {
+        return
+      }
       beginClose()
       openFallback(target)
       return
@@ -179,6 +192,7 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
 
     if (target === 'walletConnect') {
       walletConnectHandoffRef.current = true
+      setWalletConnectStackHandoff(true)
     }
 
     try {
@@ -194,6 +208,7 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
         reset()
         return
       }
+      console.error(connectError)
     } finally {
       walletConnectHandoffRef.current = false
     }
@@ -203,7 +218,13 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
 
   return createPortal(
     <div
-      className={`wallet-modal-backdrop ${isClosing ? 'wallet-modal-backdrop--closing' : ''}`}
+      className={[
+        'wallet-modal-backdrop',
+        isClosing ? 'wallet-modal-backdrop--closing' : '',
+        walletConnectStackHandoff ? 'wallet-modal-backdrop--handoff-under' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       onClick={beginClose}
       role="presentation"
     >
@@ -238,6 +259,16 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
           to get started.
         </p>
 
+        {!hasWalletConnectConnector ? (
+          <p className="wallet-modal-error" role="status">
+            WalletConnect is not in this build: add{' '}
+            <code style={{ fontSize: '0.85em' }}>VITE_WALLETCONNECT_PROJECT_ID</code> (or{' '}
+            <code style={{ fontSize: '0.85em' }}>VITE_PROJECT_ID</code>) in Vercel → Environment
+            Variables, then redeploy. For local dev, use <code style={{ fontSize: '0.85em' }}>.env</code>{' '}
+            and restart <code style={{ fontSize: '0.85em' }}>npm run dev</code>.
+          </p>
+        ) : null}
+
         <div className="wallet-modal-list">
           {WALLET_ROWS.map((wallet) => {
             const rowConnector = resolveConnector(connectors, wallet.key)
@@ -252,7 +283,7 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
                 key={wallet.key}
                 type="button"
                 className="wallet-row"
-                disabled={isPending}
+                disabled={isPending || (wallet.key === 'walletConnect' && !hasWalletConnectConnector)}
                 onClick={() => handleWalletClick(wallet.key)}
               >
                 <span className="wallet-row-label">{wallet.label}</span>
