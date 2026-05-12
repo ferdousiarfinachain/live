@@ -5,12 +5,16 @@ import App from './App.jsx'
 import Web3Providers from './Web3Providers'
 
 if (typeof window !== 'undefined') {
-  window.history.scrollRestoration = 'manual'
-  if (window.location.hash) {
-    const path = `${window.location.pathname}${window.location.search}`
-    window.history.replaceState(window.history.state, '', path)
+  try {
+    window.history.scrollRestoration = 'manual'
+    if (window.location.hash) {
+      const path = `${window.location.pathname}${window.location.search}`
+      window.history.replaceState(window.history.state, '', path)
+    }
+    window.scrollTo(0, 0)
+  } catch {
+    /* ignore: preview iframe / strict history can throw before React mounts */
   }
-  window.scrollTo(0, 0)
 }
 
 class RootErrorBoundary extends Component {
