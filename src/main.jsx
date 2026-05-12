@@ -4,6 +4,15 @@ import './index.css'
 import App from './App.jsx'
 import Web3Providers from './Web3Providers'
 
+if (typeof window !== 'undefined') {
+  window.history.scrollRestoration = 'manual'
+  if (window.location.hash) {
+    const path = `${window.location.pathname}${window.location.search}`
+    window.history.replaceState(window.history.state, '', path)
+  }
+  window.scrollTo(0, 0)
+}
+
 class RootErrorBoundary extends Component {
   constructor(props) {
     super(props)

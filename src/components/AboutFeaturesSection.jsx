@@ -22,9 +22,10 @@ function AboutFeaturesSection({
   onConnectWallet,
   onNoWallet,
   onProceedToPay,
+  maxPayAmount = '',
 }) {
   const [selectedPayment, setSelectedPayment] = useState('USDT')
-  const [payAmount, setPayAmount] = useState('1')
+  const [payAmount, setPayAmount] = useState('')
   const tokenPriceUsd = 0.025
   const receiveAmount = useMemo(() => {
     const amount = Number(payAmount)
@@ -34,8 +35,29 @@ function AboutFeaturesSection({
     return (amount / tokenPriceUsd).toFixed(2)
   }, [payAmount])
 
+  const maxPayRaw = String(maxPayAmount ?? '').trim()
+  const maxPayNum = Number(maxPayRaw)
+  const hasValidMax =
+    maxPayRaw !== '' && Number.isFinite(maxPayNum) && maxPayNum > 0
+
+  function handlePayAmountChange(event) {
+    const next = event.target.value
+    if (next === '' || /^\d*\.?\d*$/.test(next)) {
+      setPayAmount(next)
+    }
+  }
+
+  function applyMaxPay() {
+    if (!isConnected) {
+      onConnectWallet?.()
+      return
+    }
+    if (!hasValidMax) return
+    setPayAmount(maxPayRaw)
+  }
+
   return (
-    <section className="about-features" id="home">
+    <section className="about-features">
       <div className="hero-shell">
         <article className="hero-left">
           <h2 className="hero-title">
@@ -90,7 +112,7 @@ function AboutFeaturesSection({
           </div>
         </article>
 
-        <article className="presale-card" aria-label="Presale panel">
+        <article className="presale-card" id="presale" aria-label="Presale panel">
           <h2 className="presale-title">$NOVEX  <em>Presale LIVE</em></h2>
 
           <div className="presale-prices">
@@ -128,17 +150,47 @@ function AboutFeaturesSection({
           <div className="presale-inputs">
             <label className="presale-input-box">
               <span>Pay with {selectedPayment}</span>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={payAmount}
-                onChange={(event) => setPayAmount(event.target.value)}
-              />
+              <div className="presale-input-field">
+                <input
+                  className="presale-input-native"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={payAmount}
+                  onChange={handlePayAmountChange}
+                  placeholder="0"
+                  aria-label={`Amount to pay in ${selectedPayment}`}
+                />
+                <button
+                  type="button"
+                  className="presale-max-btn"
+                  onClick={applyMaxPay}
+                  disabled={isConnected && !hasValidMax}
+                  title={
+                    !isConnected
+                      ? 'Connect wallet to use your balance'
+                      : !hasValidMax
+                        ? 'Wallet balance not loaded yet'
+                        : undefined
+                  }
+                >
+                  MAX
+                </button>
+              </div>
             </label>
             <label className="presale-input-box">
               <span>Receive $NOVEX</span>
-              <input type="text" value={receiveAmount} readOnly />
+              <div className="presale-input-field presale-input-field--readonly">
+                <input
+                  className="presale-input-native presale-input-native--readonly"
+                  type="text"
+                  value={receiveAmount}
+                  placeholder="0.00"
+                  readOnly
+                  tabIndex={-1}
+                  aria-label="Novex tokens you will receive"
+                />
+              </div>
             </label>
           </div>
 

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useConnect } from 'wagmi'
+import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 import './ConnectWalletModal.css'
 
-const MODAL_CLOSE_MS = 300
+const MODAL_CLOSE_MS = 520
 const WC_HANDOFF_DELAY_MS = 70
 
 const FALLBACK_LINKS = {
@@ -19,10 +20,26 @@ const FALLBACK_LINKS = {
 }
 
 const WALLET_ROWS = [
-  { key: 'metaMask', label: 'MetaMask', icon: '🦊' },
-  { key: 'trustWallet', label: 'Trust Wallet', icon: '🛡️' },
-  { key: 'walletConnect', label: 'WalletConnect', icon: '🔗' },
-  { key: 'coinbase', label: 'Coinbase Wallet', icon: '🟦' },
+  {
+    key: 'metaMask',
+    label: 'MetaMask',
+    logo: 'https://avatars.githubusercontent.com/u/11744586?s=200&v=4',
+  },
+  {
+    key: 'trustWallet',
+    label: 'Trust Wallet',
+    logo: 'https://trustwallet.com/assets/images/media/assets/TWT.png',
+  },
+  {
+    key: 'walletConnect',
+    label: 'WalletConnect',
+    logo: 'https://avatars.githubusercontent.com/u/37784886?s=200&v=4',
+  },
+  {
+    key: 'coinbase',
+    label: 'Coinbase Wallet',
+    logo: 'https://avatars.githubusercontent.com/u/1885080?s=200&v=4',
+  },
 ]
 
 function isRejectedError(error) {
@@ -103,11 +120,10 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
     return error.shortMessage || error.message || 'Wallet connection failed.'
   }, [error])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!visible) return undefined
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    lockBodyScroll()
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') beginClose()
@@ -116,7 +132,7 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
 
     return () => {
       window.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = previousOverflow
+      unlockBodyScroll()
     }
   }, [visible])
 
@@ -208,7 +224,19 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
         </button>
 
         <h2 className="wallet-modal-title">Connect Wallet</h2>
-        <p className="wallet-modal-subtitle">Select a wallet to continue</p>
+        <p className="wallet-modal-subtitle">
+          If you already have a wallet, select it from the options below. If you don&apos;t have a
+          wallet, download{' '}
+          <a
+            href={FALLBACK_LINKS.metaMask}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="wallet-modal-link"
+          >
+            MetaMask
+          </a>{' '}
+          to get started.
+        </p>
 
         <div className="wallet-modal-list">
           {WALLET_ROWS.map((wallet) => {
@@ -227,11 +255,13 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
                 disabled={isPending}
                 onClick={() => handleWalletClick(wallet.key)}
               >
-                <span className="wallet-row-left">
-                  <span className="wallet-row-icon" aria-hidden="true">{wallet.icon}</span>
-                  <span>{wallet.label}</span>
+                <span className="wallet-row-label">{wallet.label}</span>
+                <span className="wallet-row-right">
+                  <span className="wallet-row-icon" aria-hidden="true">
+                    <img src={wallet.logo} alt="" loading="lazy" />
+                  </span>
+                  {isActivePending ? <span className="wallet-row-spinner" aria-hidden="true" /> : null}
                 </span>
-                {isActivePending ? <span className="wallet-row-spinner" aria-hidden="true" /> : null}
               </button>
             )
           })}
