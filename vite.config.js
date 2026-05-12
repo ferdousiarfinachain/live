@@ -6,10 +6,16 @@ import react from '@vitejs/plugin-react'
 const root = path.dirname(fileURLToPath(import.meta.url))
 const nm = (pkg) => path.resolve(root, 'node_modules', pkg)
 
-/** Keeps a single viem module graph in prod — avoids "Class extends value undefined" (e.g. BaseError) on Vercel. */
-function isViemVendorId(id) {
+/**
+ * One vendor chunk for viem + wagmi + @wagmi/* so BaseError / ENS classes
+ * never load from a different chunk graph (fixes Vercel "Class extends value undefined").
+ */
+function evmVendorChunk(id) {
   const n = id.split(path.sep).join('/')
-  return n.includes('/node_modules/viem/')
+  if (n.includes('/node_modules/viem/')) return 'evm-vendor'
+  if (n.includes('/node_modules/wagmi/')) return 'evm-vendor'
+  if (n.includes('/node_modules/@wagmi/')) return 'evm-vendor'
+  return undefined
 }
 
 export default defineConfig({
@@ -52,7 +58,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (isViemVendorId(id)) return 'viem'
+          return evmVendorChunk(id)
         },
       },
     },
