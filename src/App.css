@@ -1153,7 +1153,7 @@ html.scroll-locked {
   right: 0;
   width: auto;
   transform: none;
-  background: rgba(56, 50, 50, 0.9);
+  background: rgb(0, 0, 0);
   z-index: -1;
 }
 
