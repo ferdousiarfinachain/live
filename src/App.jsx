@@ -108,6 +108,19 @@ function scrollToPresalePanel() {
   document.getElementById('presale')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+function openCenteredPopup(url, title = 'wallet-download') {
+  const width = 520
+  const height = 760
+  const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2))
+  const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2))
+
+  window.open(
+    url,
+    title,
+    `popup=yes,width=${width},height=${height},left=${left},top=${top},noopener,noreferrer`,
+  )
+}
+
 /** Matches `MODAL_CLOSE_MS` in ConnectWalletModal.jsx (guide → connect handoff). */
 const WALLET_GUIDE_HANDOFF_MS = 520
 
@@ -417,6 +430,10 @@ function App() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="wallet-guide-download"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      openCenteredPopup(metaMaskDownloadUrl, 'metamask-download')
+                    }}
                   >
                     <span aria-hidden="true">🦊</span>
                     Download MetaMask

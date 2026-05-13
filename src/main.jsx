@@ -1,7 +1,5 @@
 import { Component, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-// Entry first: WalletConnect's provider dynamic-imports AppKit; pin it before wagmi/viem init order.
-import '@reown/appkit/core'
 import './index.css'
 import App from './App.jsx'
 import Web3Providers from './Web3Providers'
