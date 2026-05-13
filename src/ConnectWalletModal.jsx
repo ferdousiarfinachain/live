@@ -185,13 +185,9 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
 
     try {
       requestInFlightRef.current = true
+      beginClose()
       const connectPromise = connectAsync({ connector })
-      if (target === 'walletConnect') {
-        await new Promise((resolve) => window.setTimeout(resolve, WC_HANDOFF_DELAY_MS))
-        beginClose()
-      }
       await connectPromise
-      if (target !== 'walletConnect') beginClose()
     } catch (connectError) {
       const pendingMessage = `${connectError?.shortMessage || ''} ${connectError?.message || ''}`.toLowerCase()
       if (pendingMessage.includes('requestpermissions') && pendingMessage.includes('already pending')) {

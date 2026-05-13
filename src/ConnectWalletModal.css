@@ -21,7 +21,7 @@
 }
 
 .wallet-modal-backdrop--closing {
-  animation: wallet-backdrop-fade-out 480ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: wallet-backdrop-fade-out 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .wallet-modal {
@@ -43,7 +43,7 @@
 }
 
 .wallet-modal--closing {
-  animation: wallet-modal-out 480ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: wallet-modal-out 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .wallet-modal-close {
