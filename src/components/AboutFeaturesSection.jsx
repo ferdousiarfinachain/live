@@ -4,11 +4,13 @@ import CountdownTimer from './CountdownTimer'
 import ethLogo from 'cryptocurrency-icons/svg/color/eth.svg'
 import bnbLogo from 'cryptocurrency-icons/svg/color/bnb.svg'
 import usdtLogo from 'cryptocurrency-icons/svg/color/usdt.svg'
+import usdcLogo from 'cryptocurrency-icons/svg/color/usdc.svg'
 
 const paymentMethods = [
   { logo: ethLogo, name: 'ETH' },
   { logo: bnbLogo, name: 'BNB' },
   { logo: usdtLogo, name: 'USDT' },
+  { logo: usdcLogo, name: 'USDC' },
 ]
 
 const heroHighlights = [

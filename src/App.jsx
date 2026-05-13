@@ -435,7 +435,14 @@ function App() {
                       openCenteredPopup(metaMaskDownloadUrl, 'metamask-download')
                     }}
                   >
-                    <span aria-hidden="true">🦊</span>
+                    <img
+                      src="https://avatars.githubusercontent.com/u/11744586?s=200&v=4"
+                      alt=""
+                      width={22}
+                      height={22}
+                      aria-hidden="true"
+                      style={{ borderRadius: 4, objectFit: 'cover', display: 'block' }}
+                    />
                     Download MetaMask
                   </a>
                   <button

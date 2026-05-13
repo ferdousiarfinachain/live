@@ -5,7 +5,6 @@ import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 import './ConnectWalletModal.css'
 
 const MODAL_CLOSE_MS = 520
-const WC_HANDOFF_DELAY_MS = 70
 
 const FALLBACK_LINKS = {
   metaMask:
@@ -101,7 +100,6 @@ function resolveConnector(connectors, target) {
 
 export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
   const [isClosing, setIsClosing] = useState(false)
-  const walletConnectHandoffRef = useRef(false)
   const requestInFlightRef = useRef(false)
   const closeTimerRef = useRef(null)
   const {
@@ -179,10 +177,6 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
       return
     }
 
-    if (target === 'walletConnect') {
-      walletConnectHandoffRef.current = true
-    }
-
     try {
       requestInFlightRef.current = true
       beginClose()
@@ -199,7 +193,6 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
         return
       }
     } finally {
-      walletConnectHandoffRef.current = false
       requestInFlightRef.current = false
     }
   }

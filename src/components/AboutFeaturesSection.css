@@ -558,8 +558,8 @@
 
 .presale-methods {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
   align-items: stretch;
   width: 100%;
   min-width: 0;
@@ -574,9 +574,9 @@
   color: #dfe9ff;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  min-height: 40px;
+  gap: 4px;
+  padding: 3px 4px;
+  min-height: 34px;
   min-width: 0;
   width: 100%;
   justify-content: center;
@@ -632,8 +632,8 @@
 }
 
 .method-icon {
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   display: inline-grid;
   place-items: center;
@@ -656,7 +656,7 @@
 }
 
 .method-copy strong {
-  font-size: clamp(0.85rem, 1.1vw, 1.05rem);
+  font-size: clamp(0.72rem, 1.8vw, 0.92rem);
   font-weight: 600;
   color: #ffffff;
 }
@@ -909,15 +909,15 @@
   }
 
   .presale-methods {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .countdown__item strong {
     font-size: clamp(1.05rem, 3.4vw, 1.3rem);
   }
   .method-box {
-    min-height: 42px;
-    padding: 5px 6px;
+    min-height: 36px;
+    padding: 4px 4px;
   }
 }
 
@@ -966,8 +966,8 @@
   }
 
   .presale-methods {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 5px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .presale-card {
@@ -1012,19 +1012,19 @@
   }
 
   .method-box {
-    min-height: 40px;
-    padding: 5px 4px;
+    min-height: 34px;
+    padding: 4px 3px;
     justify-content: center;
-    gap: 5px;
+    gap: 3px;
   }
 
   .method-copy strong {
-    font-size: clamp(0.68rem, 3vw, 0.88rem);
+    font-size: clamp(0.62rem, 2.8vw, 0.82rem);
   }
 
   .method-icon {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
     font-size: 11px;
   }
 
@@ -1084,7 +1084,7 @@
   }
 
   .presale-methods {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .countdown__item strong {
@@ -1110,8 +1110,8 @@
   }
 
   .method-box {
-    padding: 4px 3px;
-    min-height: 38px;
-    gap: 4px;
+    padding: 3px 2px;
+    min-height: 32px;
+    gap: 3px;
   }
 }
