@@ -5,7 +5,7 @@ import { FaDiscord, FaInstagram } from 'react-icons/fa'
 import { FaXTwitter } from 'react-icons/fa6'
 import { SiBinance } from 'react-icons/si'
 import { SiTelegram, SiTiktok } from 'react-icons/si'
-import { useAccount, useDisconnect } from 'wagmi'
+import { useAccount, useConnections, useDisconnect } from 'wagmi'
 import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 import './App.css'
 import ConnectWalletModal from './ConnectWalletModal'
@@ -14,6 +14,7 @@ import FaqStepSection from './components/FaqStepSection'
 import RoadmapSection from './components/RoadmapSection'
 import StarfieldBackground from './components/StarfieldBackground'
 import TokenomicsSection from './components/TokenomicsSection'
+import { isCoarseMobile } from './walletMobile'
 
 const navItems = [
   { label: 'HOME', href: '#home' },
@@ -139,7 +140,21 @@ function App() {
   const [guideModalClosing, setGuideModalClosing] = useState(false)
   const guideHandoffTimerRef = useRef(null)
   const { address, isConnected } = useAccount()
+  const connections = useConnections()
   const { disconnectAsync } = useDisconnect()
+
+  const showMobileWalletDock = isConnected && isCoarseMobile()
+
+  async function disconnectWalletFully() {
+    const list = [...connections]
+    if (list.length === 0) {
+      await disconnectAsync().catch(() => {})
+      return
+    }
+    for (const c of list) {
+      await disconnectAsync({ connector: c.connector }).catch(() => {})
+    }
+  }
 
   const shortAddress = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : ''
 
@@ -170,7 +185,7 @@ function App() {
     import.meta.env.VITE_METAMASK_DOWNLOAD_URL || 'https://metamask.io/download/'
 
   return (
-    <div className="page">
+    <div className={`page${showMobileWalletDock ? ' page--wallet-dock' : ''}`}>
       <StarfieldBackground />
       <header className="hero-header">
         <nav className="retro-nav">
@@ -205,8 +220,8 @@ function App() {
                   <button
                     className="cta-btn mobile-buy-btn"
                     type="button"
-                    onClick={async () => {
-                      await disconnectAsync()
+                    onClick={() => {
+                      void disconnectWalletFully()
                     }}
                   >
                     Disconnect
@@ -233,8 +248,8 @@ function App() {
                 <button
                   className="cta-btn"
                   type="button"
-                  onClick={async () => {
-                    await disconnectAsync()
+                  onClick={() => {
+                    void disconnectWalletFully()
                   }}
                 >
                   Disconnect
@@ -383,6 +398,19 @@ function App() {
         onClose={() => setConnectModalOpen(false)}
         onNoWallet={() => setGuideModalOpen(true)}
       />
+
+      {showMobileWalletDock ? (
+        <div className="mobile-wallet-dock" role="region" aria-label="Wallet connection">
+          <div className="mobile-wallet-dock__row">
+            <span className="mobile-wallet-dock__addr" title={address || ''}>
+              {shortAddress}
+            </span>
+            <button type="button" className="mobile-wallet-dock__disconnect" onClick={() => void disconnectWalletFully()}>
+              Disconnect wallet
+            </button>
+          </div>
+        </div>
+      ) : null}
       {guideModalOpen
         ? createPortal(
             <div
