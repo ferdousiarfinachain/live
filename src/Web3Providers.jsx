@@ -1,10 +1,8 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { coinbaseWallet, injected, walletConnect } from '@wagmi/connectors'
-import { createConfig, http, WagmiProvider, useReconnect } from 'wagmi'
+import { createConfig, http, WagmiProvider } from 'wagmi'
 import { bsc, mainnet } from 'viem/chains'
-
-import { isCoarseMobile } from './walletMobile'
 
 const appName = 'Novex Labs'
 const appLogoUrl = 'https://walletconnect.com/walletconnect-logo.png'
@@ -40,7 +38,7 @@ if (walletConnectProjectId) {
   connectors.push(
     walletConnect({
       projectId: walletConnectProjectId,
-      showQrModal: !isCoarseMobile(),
+      showQrModal: true,
       metadata: walletMetadata,
     }),
   )
@@ -55,34 +53,12 @@ const wagmiConfig = createConfig({
   },
 })
 
-function WalletSessionEffects() {
-  const { reconnectAsync } = useReconnect()
-
-  useEffect(() => {
-    const onResume = () => {
-      if (document.visibilityState !== 'visible') return
-      reconnectAsync().catch(() => {})
-    }
-    document.addEventListener('visibilitychange', onResume)
-    window.addEventListener('pageshow', onResume)
-    return () => {
-      document.removeEventListener('visibilitychange', onResume)
-      window.removeEventListener('pageshow', onResume)
-    }
-  }, [reconnectAsync])
-
-  return null
-}
-
 export default function Web3Providers({ children }) {
   const queryClient = useMemo(() => new QueryClient(), [])
 
   return (
-    <WagmiProvider config={wagmiConfig} reconnectOnMount>
-      <QueryClientProvider client={queryClient}>
-        <WalletSessionEffects />
-        {children}
-      </QueryClientProvider>
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </WagmiProvider>
   )
 }
