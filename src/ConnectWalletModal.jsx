@@ -5,6 +5,7 @@ import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 import {
   connectMobileWallet,
   isMobileDevice,
+  openMobileWalletApp,
   openMobileWalletDownload,
 } from './mobileWalletConnect'
 import './ConnectWalletModal.css'
@@ -167,6 +168,9 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
         if (result.status === 'fallback') {
           openMobileWalletDownload(target)
         }
+        if (result.status === 'redirected') {
+          reset()
+        }
       } catch (connectError) {
         const pendingMessage = `${connectError?.shortMessage || ''} ${connectError?.message || ''}`.toLowerCase()
         if (pendingMessage.includes('requestpermissions') && pendingMessage.includes('already pending')) {
@@ -176,6 +180,10 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
         if (isRejectedError(connectError)) {
           reset()
           return
+        }
+        if (target === 'metaMask' || target === 'coinbase') {
+          reset()
+          openMobileWalletApp(target)
         }
       } finally {
         requestInFlightRef.current = false

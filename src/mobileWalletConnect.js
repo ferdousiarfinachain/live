@@ -24,7 +24,10 @@ const MOBILE_WALLET_STORE = {
 export function isMobileDevice() {
   if (typeof window === 'undefined') return false
   const ua = navigator.userAgent || ''
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|CriOS|FxiOS|EdgiOS/i.test(ua)) {
+    return true
+  }
+  return Boolean(window.matchMedia?.('(pointer: coarse)')?.matches)
 }
 
 function isAndroid() {
@@ -39,6 +42,10 @@ function normalizeTarget(target) {
   return `${target || ''}`.toLowerCase()
 }
 
+function getDappUrl() {
+  return window.location.href
+}
+
 function resolveWalletConnectConnector(connectors) {
   return connectors.find((connector) => {
     const id = (connector.id || '').toLowerCase()
@@ -48,29 +55,8 @@ function resolveWalletConnectConnector(connectors) {
   })
 }
 
-function resolveInjectedConnector(connectors, target) {
-  const normalized = normalizeTarget(target)
-
-  const named = connectors.find((connector) => {
-    const id = (connector.id || '').toLowerCase()
-    const name = (connector.name || '').toLowerCase()
-
-    if (normalized === 'metamask') {
-      return id.includes('metamask') || name.includes('metamask')
-    }
-    if (normalized === 'coinbase') {
-      return id.includes('coinbase') || name.includes('coinbase')
-    }
-    return false
-  })
-
-  if (named) return named
-
-  if (hasInjectedWallet(target)) {
-    return connectors.find((connector) => (connector.id || '').toLowerCase() === 'injected')
-  }
-
-  return undefined
+function resolveInjectedOnlyConnector(connectors) {
+  return connectors.find((connector) => (connector.id || '').toLowerCase() === 'injected')
 }
 
 export function hasInjectedWallet(target) {
@@ -96,27 +82,85 @@ function getStoreUrl(target) {
   return store.default
 }
 
-function buildWalletDappLink(target) {
-  const url = window.location.href
-  const normalized = normalizeTarget(target)
+/**
+ * Try native scheme first (hidden iframe), then universal link.
+ * Avoids navigating the current tab to a blank Branch redirect page.
+ */
+function tryNativeThenUniversal(nativeUrl, universalUrl, storeUrl) {
+  const iframe = document.createElement('iframe')
+  iframe.style.display = 'none'
+  iframe.setAttribute('aria-hidden', 'true')
+  iframe.src = nativeUrl
+  document.body.appendChild(iframe)
 
-  if (normalized === 'metamask') {
-    return `https://metamask.app.link/dapp/${encodeURIComponent(url)}`
-  }
-  if (normalized === 'coinbase') {
-    return `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(url)}`
-  }
-  return null
+  window.setTimeout(() => {
+    iframe.remove()
+    if (document.visibilityState !== 'visible') return
+    openMobileUrl(universalUrl)
+    window.setTimeout(() => {
+      if (document.visibilityState === 'visible') {
+        openMobileUrl(storeUrl)
+      }
+    }, 2200)
+  }, 900)
 }
 
-/**
- * Opens the wallet app with this dapp (universal link).
- * Installed → native app; not installed → Play Store / App Store via the link provider.
- */
-function openMobileWalletApp(target) {
-  const dappLink = buildWalletDappLink(target)
-  if (dappLink) {
-    openMobileUrl(dappLink)
+function openMetaMaskMobile() {
+  const dappUrl = getDappUrl()
+  const storeUrl = getStoreUrl('metaMask')
+  const universal = `https://link.metamask.io/dapp/${encodeURIComponent(dappUrl)}`
+
+  if (isAndroid()) {
+    const fallback = encodeURIComponent(storeUrl)
+    const intent = `intent://dapp?url=${encodeURIComponent(dappUrl)}#Intent;scheme=metamask;package=io.metamask;S.browser_fallback_url=${fallback};end`
+    openMobileUrl(intent)
+    return
+  }
+
+  if (isIOS()) {
+    tryNativeThenUniversal(
+      `metamask://dapp?url=${encodeURIComponent(dappUrl)}`,
+      universal,
+      storeUrl,
+    )
+    return
+  }
+
+  openMobileUrl(universal)
+}
+
+function openCoinbaseMobile() {
+  const dappUrl = getDappUrl()
+  const storeUrl = getStoreUrl('coinbase')
+  const universal = `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(dappUrl)}`
+
+  if (isAndroid()) {
+    const fallback = encodeURIComponent(storeUrl)
+    const intent = `intent://dapp?url=${encodeURIComponent(dappUrl)}#Intent;scheme=cbwallet;package=org.toshi;S.browser_fallback_url=${fallback};end`
+    openMobileUrl(intent)
+    return
+  }
+
+  if (isIOS()) {
+    tryNativeThenUniversal(
+      `cbwallet://dapp?url=${encodeURIComponent(dappUrl)}`,
+      universal,
+      storeUrl,
+    )
+    return
+  }
+
+  openMobileUrl(universal)
+}
+
+export function openMobileWalletApp(target) {
+  const normalized = normalizeTarget(target)
+  if (normalized === 'metamask') {
+    openMetaMaskMobile()
+    return
+  }
+  if (normalized === 'coinbase') {
+    openCoinbaseMobile()
     return
   }
   openMobileUrl(getStoreUrl(target))
@@ -155,11 +199,16 @@ export async function connectMobileWallet({ target, connectAsync, connectors }) 
     return { status: 'fallback', target }
   }
 
+  // Inside wallet in-app browser only — use injected(), never coinbaseWallet() (SDK not loaded on mobile web).
   if (hasInjectedWallet(target)) {
-    const connector = resolveInjectedConnector(connectors, target)
-    if (connector) {
-      await connectAsync({ connector })
-      return { status: 'connected' }
+    const injectedConnector = resolveInjectedOnlyConnector(connectors)
+    if (injectedConnector) {
+      try {
+        await connectAsync({ connector: injectedConnector })
+        return { status: 'connected' }
+      } catch {
+        // Fall through to deep link if in-app connect fails.
+      }
     }
   }
 
