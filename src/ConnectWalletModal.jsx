@@ -1,19 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useConnect } from 'wagmi'
 import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 import {
-  attachWalletConnectDisplayUriDeepLink,
-  coinbaseWalletDappLink,
-  getMobileBrowserSupportReason,
-  isCoarseMobile,
-  isCoinbaseWalletInjected,
-  isMetaMaskInjected,
-  isTrustWalletInjected,
-  metaMaskDappUniversalLink,
-  trustWalletOpenUrlLink,
-} from './walletMobile'
-import { getEthereumSnapshot, walletDebugLog } from './walletDebugLog'
+  connectMobileWallet,
+  isMobileDevice,
+  openMobileWalletDownload,
+} from './mobileWalletConnect'
 import './ConnectWalletModal.css'
 
 const MODAL_CLOSE_MS = 520
@@ -52,13 +45,6 @@ const WALLET_ROWS = [
     logo: 'https://avatars.githubusercontent.com/u/1885080?s=200&v=4',
   },
 ]
-
-const BROWSER_HINT_COPY = {
-  'instagram-facebook':
-    'This in-app browser often blocks wallets. Open this page in Safari or Chrome, then connect again.',
-  line: 'Line’s in-app browser may block WalletConnect. Open in Safari or Chrome for a reliable connection.',
-  tiktok: 'TikTok’s in-app browser may block wallets. Open in Safari or Chrome, then try again.',
-}
 
 function isRejectedError(error) {
   if (!error) return false
@@ -133,24 +119,10 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
   const activeConnectorId = variables?.connector?.id
   const visible = isOpen || isClosing
 
-  const mobileBrowserReason = useMemo(
-    () => (typeof window !== 'undefined' && isCoarseMobile() ? getMobileBrowserSupportReason() : null),
-    [],
-  )
-
   const errorMessage = useMemo(() => {
     if (!error) return ''
     return error.shortMessage || error.message || 'Wallet connection failed.'
   }, [error])
-
-  const beginClose = useCallback(() => {
-    if (!isOpen || isClosing) return
-    setIsClosing(true)
-    closeTimerRef.current = window.setTimeout(() => {
-      setIsClosing(false)
-      onClose()
-    }, MODAL_CLOSE_MS)
-  }, [isOpen, isClosing, onClose])
 
   useLayoutEffect(() => {
     if (!visible) return undefined
@@ -166,43 +138,24 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
       window.removeEventListener('keydown', onKeyDown)
       unlockBodyScroll()
     }
-  }, [visible, beginClose])
+  }, [visible])
 
   useEffect(() => () => {
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
   }, [])
 
-  useEffect(() => {
-    if (!isOpen) return
-    // #region agent log
-    walletDebugLog({
-      hypothesisId: 'A',
-      location: 'ConnectWalletModal.jsx:modal-open',
-      message: 'connect modal opened',
-      runId: 'post-fix',
-      data: {
-        isMobile: isCoarseMobile(),
-        connectors: connectors.map((c) => ({ id: c.id, name: c.name, type: c.type })),
-        ethereum: getEthereumSnapshot(),
-        metaMaskInjected: isMetaMaskInjected(),
-      },
-    })
-    // #endregion
-  }, [isOpen, connectors])
+  function beginClose() {
+    if (!isOpen || isClosing) return
+    setIsClosing(true)
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsClosing(false)
+      onClose()
+    }, MODAL_CLOSE_MS)
+  }
 
   function openFallback(target) {
     const url = FALLBACK_LINKS[target]
     if (!url) return
-
-    // #region agent log
-    walletDebugLog({
-      hypothesisId: 'D',
-      location: 'ConnectWalletModal.jsx:openFallback',
-      message: 'opening wallet fallback',
-      runId: 'post-fix',
-      data: { target, url, isMobile: isCoarseMobile() },
-    })
-    // #endregion
 
     if (target === 'walletConnect') {
       openWalletConnectPage(url)
@@ -212,141 +165,18 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
     openCenteredPopup(url, `${target}-wallet`)
   }
 
-  async function runInjectedConnect(connector) {
-    requestInFlightRef.current = true
-    beginClose()
-    try {
-      await connectAsync({ connector })
-    } catch (connectError) {
-      const pendingMessage = `${connectError?.shortMessage || ''} ${connectError?.message || ''}`.toLowerCase()
-      if (pendingMessage.includes('requestpermissions') && pendingMessage.includes('already pending')) {
-        reset()
-        return
-      }
-      if (isRejectedError(connectError)) {
-        reset()
-        return
-      }
-    } finally {
-      requestInFlightRef.current = false
-    }
-  }
-
   async function handleWalletClick(target) {
     if (requestInFlightRef.current || isPending) return
     reset()
 
-    const mobile = isCoarseMobile()
-    const eth = typeof window !== 'undefined' ? window.ethereum : undefined
-    const connector = resolveConnector(connectors, target)
-
-    // #region agent log
-    walletDebugLog({
-      hypothesisId: 'E',
-      location: 'ConnectWalletModal.jsx:handleWalletClick',
-      message: 'wallet row clicked',
-      runId: 'post-fix',
-      data: {
-        target,
-        isMobile: mobile,
-        connector: connector
-          ? { id: connector.id, name: connector.name, type: connector.type }
-          : null,
-        ethereum: getEthereumSnapshot(),
-      },
-    })
-    // #endregion
-
-    if (!connector) {
-      beginClose()
-      openFallback(target)
-      return
-    }
-
-    if (target === 'metaMask') {
-      if (isMetaMaskInjected(eth)) {
-        await runInjectedConnect(connector)
-        return
-      }
-      if (mobile) {
-        const deepLink = metaMaskDappUniversalLink()
-        // #region agent log
-        walletDebugLog({
-          hypothesisId: 'FIX',
-          location: 'ConnectWalletModal.jsx:metaMask-mobile-deeplink',
-          message: 'opening MetaMask app via universal link',
-          runId: 'post-fix',
-          data: { deepLink },
-        })
-        // #endregion
-        beginClose()
-        window.location.assign(deepLink)
-        return
-      }
-      beginClose()
-      openFallback('metaMask')
-      return
-    }
-
-    if (target === 'trustWallet') {
-      if (isTrustWalletInjected(eth)) {
-        await runInjectedConnect(connector)
-        return
-      }
-      if (mobile) {
-        beginClose()
-        window.location.assign(trustWalletOpenUrlLink())
-        return
-      }
-      beginClose()
-      openFallback('trustWallet')
-      return
-    }
-
-    if (target === 'coinbase') {
-      if (isCoinbaseWalletInjected(eth)) {
-        await runInjectedConnect(connector)
-        return
-      }
-      if (mobile) {
-        beginClose()
-        window.location.assign(coinbaseWalletDappLink())
-        return
-      }
-      beginClose()
-      openCenteredPopup(FALLBACK_LINKS.coinbase, 'coinbase-wallet')
-      return
-    }
-
-    if (target === 'walletConnect') {
-      if (mobile) {
-        let detachDisplayUri = () => {}
-        try {
-          requestInFlightRef.current = true
-          beginClose()
-          detachDisplayUri = await attachWalletConnectDisplayUriDeepLink(connector, 'walletConnect')
-          await connectAsync({ connector })
-        } catch (connectError) {
-          const pendingMessage = `${connectError?.shortMessage || ''} ${connectError?.message || ''}`.toLowerCase()
-          if (pendingMessage.includes('requestpermissions') && pendingMessage.includes('already pending')) {
-            reset()
-            return
-          }
-          if (isRejectedError(connectError)) {
-            reset()
-            return
-          }
-        } finally {
-          detachDisplayUri()
-          requestInFlightRef.current = false
-        }
-        return
-      }
-
+    if (isMobileDevice()) {
       try {
         requestInFlightRef.current = true
         beginClose()
-        await connectAsync({ connector })
+        const result = await connectMobileWallet({ target, connectAsync, connectors })
+        if (result.status === 'fallback') {
+          openMobileWalletDownload(target)
+        }
       } catch (connectError) {
         const pendingMessage = `${connectError?.shortMessage || ''} ${connectError?.message || ''}`.toLowerCase()
         if (pendingMessage.includes('requestpermissions') && pendingMessage.includes('already pending')) {
@@ -360,6 +190,40 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
       } finally {
         requestInFlightRef.current = false
       }
+      return
+    }
+
+    const connector = resolveConnector(connectors, target)
+
+    if (!connector) {
+      beginClose()
+      openFallback(target)
+      return
+    }
+
+    if (target === 'coinbase' && !window?.ethereum?.isCoinbaseWallet) {
+      beginClose()
+      openCenteredPopup(FALLBACK_LINKS.coinbase, 'coinbase-wallet')
+      return
+    }
+
+    try {
+      requestInFlightRef.current = true
+      beginClose()
+      const connectPromise = connectAsync({ connector })
+      await connectPromise
+    } catch (connectError) {
+      const pendingMessage = `${connectError?.shortMessage || ''} ${connectError?.message || ''}`.toLowerCase()
+      if (pendingMessage.includes('requestpermissions') && pendingMessage.includes('already pending')) {
+        reset()
+        return
+      }
+      if (isRejectedError(connectError)) {
+        reset()
+        return
+      }
+    } finally {
+      requestInFlightRef.current = false
     }
   }
 
@@ -388,13 +252,6 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
         </button>
 
         <h2 className="wallet-modal-title">Connect Wallet</h2>
-
-        {mobileBrowserReason && BROWSER_HINT_COPY[mobileBrowserReason] ? (
-          <p className="wallet-modal-browser-hint" role="status">
-            {BROWSER_HINT_COPY[mobileBrowserReason]}
-          </p>
-        ) : null}
-
         <p className="wallet-modal-subtitle">
           If you already have a wallet, select it from the options below. If you don&apos;t have a
           wallet, download{' '}
@@ -440,14 +297,10 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
 
         {errorMessage ? <p className="wallet-modal-error">{errorMessage}</p> : null}
 
-        <button
-          type="button"
-          className="wallet-modal-footer-btn"
-          onClick={() => {
-            beginClose()
-            onNoWallet?.()
-          }}
-        >
+        <button type="button" className="wallet-modal-footer-btn" onClick={() => {
+          beginClose()
+          onNoWallet?.()
+        }}>
           I don&apos;t have a wallet
         </button>
       </div>
