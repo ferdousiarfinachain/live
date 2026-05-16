@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { coinbaseWallet, injected, metaMask, walletConnect } from '@wagmi/connectors'
+import { coinbaseWallet, injected, walletConnect } from '@wagmi/connectors'
 import { createConfig, http, WagmiProvider } from 'wagmi'
 import { bsc, mainnet } from 'viem/chains'
 
@@ -25,10 +25,6 @@ const walletConnectProjectId = (
   .toString()
   .trim()
 
-const isMobileBrowser =
-  typeof window !== 'undefined' &&
-  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '')
-
 const connectors = [
   injected(),
   coinbaseWallet({
@@ -37,18 +33,6 @@ const connectors = [
     preference: 'all',
   }),
 ]
-
-if (isMobileBrowser) {
-  connectors.push(
-    metaMask({
-      dappMetadata: {
-        name: appName,
-        url: walletMetadata.url,
-        iconUrl: appLogoUrl,
-      },
-    }),
-  )
-}
 
 if (walletConnectProjectId) {
   connectors.push(

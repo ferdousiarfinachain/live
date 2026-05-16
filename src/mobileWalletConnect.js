@@ -1,3 +1,8 @@
+const MOBILE_WALLET_DEEP_LINKS = {
+  metaMask: (uri) => `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`,
+  coinbase: (uri) => `https://go.cb-w.com/wc?uri=${encodeURIComponent(uri)}`,
+}
+
 const MOBILE_WALLET_DOWNLOAD = {
   metaMask:
     import.meta.env.VITE_METAMASK_DOWNLOAD_URL || 'https://metamask.io/download/',
@@ -6,17 +11,6 @@ const MOBILE_WALLET_DOWNLOAD = {
     'https://www.coinbase.com/wallet/downloads',
   walletConnect:
     import.meta.env.VITE_WALLETCONNECT_INFO_URL || 'https://walletconnect.com/explorer',
-}
-
-const MOBILE_STORE_LINKS = {
-  metaMask: {
-    android: 'https://play.google.com/store/apps/details?id=io.metamask',
-    ios: 'https://apps.apple.com/app/metamask/id1438144202',
-  },
-  coinbase: {
-    android: 'https://play.google.com/store/apps/details?id=org.toshi',
-    ios: 'https://apps.apple.com/app/coinbase-wallet/id1278383455',
-  },
 }
 
 export function isMobileDevice() {
@@ -29,19 +23,12 @@ function normalizeTarget(target) {
   return `${target || ''}`.toLowerCase()
 }
 
-function resolveMetaMaskSdkConnector(connectors) {
-  return connectors.find((connector) => {
-    const id = (connector.id || '').toLowerCase()
-    const type = (connector.type || '').toLowerCase()
-    return id === 'metamasksdk' || type === 'metamask'
-  })
-}
-
-function resolveCoinbaseConnector(connectors) {
+function resolveWalletConnectConnector(connectors) {
   return connectors.find((connector) => {
     const id = (connector.id || '').toLowerCase()
     const name = (connector.name || '').toLowerCase()
-    return id.includes('coinbase') || name.includes('coinbase')
+    const type = (connector.type || '').toLowerCase()
+    return id.includes('walletconnect') || name.includes('walletconnect') || type.includes('walletconnect')
   })
 }
 
@@ -53,10 +40,13 @@ function resolveInjectedConnector(connectors, target) {
     const name = (connector.name || '').toLowerCase()
 
     if (normalized === 'metamask') {
-      return id === 'injected' && (name.includes('metamask') || name.includes('injected'))
+      return id.includes('metamask') || name.includes('metamask')
     }
     if (normalized === 'coinbase') {
       return id.includes('coinbase') || name.includes('coinbase')
+    }
+    if (normalized === 'walletconnect') {
+      return resolveWalletConnectConnector([connector])
     }
     return false
   })
@@ -74,85 +64,70 @@ export function hasInjectedWallet(target) {
 
 function openMobileUrl(url) {
   if (!url) return
-  window.location.assign(url)
-}
-
-function getStoreOrDownloadUrl(target) {
-  const key = normalizeTarget(target) === 'metamask' ? 'metaMask' : target
-  const stores = MOBILE_STORE_LINKS[key]
-  if (!stores) return MOBILE_WALLET_DOWNLOAD[key] || MOBILE_WALLET_DOWNLOAD.walletConnect
-
-  const ua = navigator.userAgent || ''
-  if (/Android/i.test(ua)) return stores.android
-  if (/iPhone|iPad|iPod/i.test(ua)) return stores.ios
-  return MOBILE_WALLET_DOWNLOAD[key] || MOBILE_WALLET_DOWNLOAD.walletConnect
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.rel = 'noopener noreferrer'
+  anchor.click()
 }
 
 export function openMobileWalletDownload(target) {
-  openMobileUrl(getStoreOrDownloadUrl(target))
+  openMobileUrl(MOBILE_WALLET_DOWNLOAD[target] || MOBILE_WALLET_DOWNLOAD.walletConnect)
 }
 
-function isUserRejectedError(error) {
-  if (!error) return false
-  const message = `${error?.shortMessage || ''} ${error?.message || ''}`.toLowerCase()
-  return (
-    error?.name === 'UserRejectedRequestError' ||
-    error?.code === 4001 ||
-    message.includes('user rejected') ||
-    message.includes('denied') ||
-    message.includes('cancelled') ||
-    message.includes('canceled')
-  )
-}
+function attachWalletDeepLink(target, provider) {
+  const normalized = normalizeTarget(target)
+  const buildLink =
+    normalized === 'metamask'
+      ? MOBILE_WALLET_DEEP_LINKS.metaMask
+      : normalized === 'coinbase'
+        ? MOBILE_WALLET_DEEP_LINKS.coinbase
+        : null
 
-async function connectWithFallback({ connectAsync, connector, target }) {
-  try {
-    await connectAsync({ connector })
-    return { status: 'connected' }
-  } catch (error) {
-    if (isUserRejectedError(error)) throw error
-    return { status: 'fallback', target }
+  if (!buildLink || !provider?.on) return () => {}
+
+  const onDisplayUri = (uri) => {
+    if (!uri) return
+    window.location.assign(buildLink(uri))
+  }
+
+  provider.on('display_uri', onDisplayUri)
+  return () => {
+    provider.removeListener?.('display_uri', onDisplayUri)
   }
 }
 
 /**
- * Mobile-only wallet connect for MetaMask and Coinbase.
- * WalletConnect is handled by ConnectWalletModal (same path as desktop).
+ * Mobile-only wallet connect: opens installed wallet apps via WalletConnect deep links.
+ * Falls back to download URLs when WalletConnect is not configured.
  */
 export async function connectMobileWallet({ target, connectAsync, connectors }) {
   const normalized = normalizeTarget(target)
 
-  if (normalized === 'metamask') {
-    if (hasInjectedWallet('metaMask')) {
-      const injectedConnector = resolveInjectedConnector(connectors, 'metaMask')
-      if (injectedConnector) {
-        return connectWithFallback({ connectAsync, connector: injectedConnector, target: 'metaMask' })
-      }
+  if (hasInjectedWallet(target)) {
+    const injectedConnector = resolveInjectedConnector(connectors, target)
+    if (injectedConnector) {
+      await connectAsync({ connector: injectedConnector })
+      return { status: 'connected' }
     }
-
-    const metaMaskConnector = resolveMetaMaskSdkConnector(connectors)
-    if (metaMaskConnector) {
-      return connectWithFallback({ connectAsync, connector: metaMaskConnector, target: 'metaMask' })
-    }
-
-    return { status: 'fallback', target: 'metaMask' }
   }
 
-  if (normalized === 'coinbase') {
-    if (hasInjectedWallet('coinbase')) {
-      const injectedConnector = resolveInjectedConnector(connectors, 'coinbase')
-      if (injectedConnector) {
-        return connectWithFallback({ connectAsync, connector: injectedConnector, target: 'coinbase' })
-      }
-    }
-
-    const coinbaseConnector = resolveCoinbaseConnector(connectors)
-    if (coinbaseConnector) {
-      return connectWithFallback({ connectAsync, connector: coinbaseConnector, target: 'coinbase' })
-    }
-
-    return { status: 'fallback', target: 'coinbase' }
+  const walletConnectConnector = resolveWalletConnectConnector(connectors)
+  if (!walletConnectConnector) {
+    return { status: 'fallback', target }
   }
 
-  return { status: 'fallback', target }
+  let detachUriListener = () => {}
+  const shouldDeepLink = normalized === 'metamask' || normalized === 'coinbase'
+
+  try {
+    if (shouldDeepLink && typeof walletConnectConnector.getProvider === 'function') {
+      const provider = await walletConnectConnector.getProvider()
+      detachUriListener = attachWalletDeepLink(target, provider)
+    }
+
+    await connectAsync({ connector: walletConnectConnector })
+    return { status: 'connected' }
+  } finally {
+    detachUriListener()
+  }
 }

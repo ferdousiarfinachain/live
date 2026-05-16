@@ -159,7 +159,7 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
     if (requestInFlightRef.current || isPending) return
     reset()
 
-    if (isMobileDevice() && target !== 'walletConnect') {
+    if (isMobileDevice()) {
       try {
         requestInFlightRef.current = true
         beginClose()
