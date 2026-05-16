@@ -50,7 +50,7 @@ const howToBuySteps = [
     number: '1',
     title: 'Create a Wallet',
     description:
-      'Download MetaMask or Trust Wallet in your Phone or Chrome browser Extension. Keep your seed phrase secure and never share it with anyone.',
+      'Download MetaMask on your phone or as a Chrome browser extension. Keep your seed phrase secure and never share it with anyone.',
     iconKey: 'wallet',
   },
   {

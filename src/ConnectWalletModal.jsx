@@ -14,8 +14,6 @@ const MODAL_CLOSE_MS = 520
 const FALLBACK_LINKS = {
   metaMask:
     import.meta.env.VITE_METAMASK_DOWNLOAD_URL || 'https://metamask.io/download/',
-  trustWallet:
-    import.meta.env.VITE_TRUSTWALLET_DOWNLOAD_URL || 'https://trustwallet.com/download',
   walletConnect:
     import.meta.env.VITE_WALLETCONNECT_INFO_URL || 'https://walletconnect.com/explorer',
   coinbase:
@@ -28,11 +26,6 @@ const WALLET_ROWS = [
     key: 'metaMask',
     label: 'MetaMask',
     logo: 'https://avatars.githubusercontent.com/u/11744586?s=200&v=4',
-  },
-  {
-    key: 'trustWallet',
-    label: 'Trust Wallet',
-    logo: 'https://trustwallet.com/assets/images/media/assets/TWT.png',
   },
   {
     key: 'walletConnect',
@@ -92,9 +85,6 @@ function resolveConnector(connectors, target) {
     }
     if (normalized === 'coinbase') {
       return id.includes('coinbase') || name.includes('coinbase')
-    }
-    if (normalized === 'trustwallet') {
-      return id.includes('trust') || name.includes('trust')
     }
     if (normalized === 'metamask') {
       return id.includes('metamask') || name.includes('metamask')

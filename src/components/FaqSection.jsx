@@ -15,7 +15,7 @@ const faqItems = [
   {
     question: 'Which wallets are supported?',
     answer:
-      'Common EVM wallets such as MetaMask, Rabby, Trust Wallet, and similar—always verify you are on the correct network.',
+      'Common EVM wallets such as MetaMask, Rabby, and similar—always verify you are on the correct network.',
   },
   {
     question: 'Where can I get updates?',

@@ -1,14 +1,11 @@
 const MOBILE_WALLET_DEEP_LINKS = {
   metaMask: (uri) => `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`,
-  trustWallet: (uri) => `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`,
   coinbase: (uri) => `https://go.cb-w.com/wc?uri=${encodeURIComponent(uri)}`,
 }
 
 const MOBILE_WALLET_DOWNLOAD = {
   metaMask:
     import.meta.env.VITE_METAMASK_DOWNLOAD_URL || 'https://metamask.io/download/',
-  trustWallet:
-    import.meta.env.VITE_TRUSTWALLET_DOWNLOAD_URL || 'https://trustwallet.com/download',
   coinbase:
     import.meta.env.VITE_COINBASE_WALLET_DOWNLOAD_URL ||
     'https://www.coinbase.com/wallet/downloads',
@@ -45,9 +42,6 @@ function resolveInjectedConnector(connectors, target) {
     if (normalized === 'metamask') {
       return id.includes('metamask') || name.includes('metamask')
     }
-    if (normalized === 'trustwallet') {
-      return id.includes('trust') || name.includes('trust')
-    }
     if (normalized === 'coinbase') {
       return id.includes('coinbase') || name.includes('coinbase')
     }
@@ -64,7 +58,6 @@ export function hasInjectedWallet(target) {
 
   const normalized = normalizeTarget(target)
   if (normalized === 'metamask') return Boolean(eth.isMetaMask)
-  if (normalized === 'trustwallet') return Boolean(eth.isTrust || eth.isTrustWallet)
   if (normalized === 'coinbase') return Boolean(eth.isCoinbaseWallet)
   return false
 }
@@ -78,8 +71,7 @@ function openMobileUrl(url) {
 }
 
 export function openMobileWalletDownload(target) {
-  const key = normalizeTarget(target) === 'trustwallet' ? 'trustWallet' : target
-  openMobileUrl(MOBILE_WALLET_DOWNLOAD[key] || MOBILE_WALLET_DOWNLOAD.walletConnect)
+  openMobileUrl(MOBILE_WALLET_DOWNLOAD[target] || MOBILE_WALLET_DOWNLOAD.walletConnect)
 }
 
 function attachWalletDeepLink(target, provider) {
@@ -87,11 +79,9 @@ function attachWalletDeepLink(target, provider) {
   const buildLink =
     normalized === 'metamask'
       ? MOBILE_WALLET_DEEP_LINKS.metaMask
-      : normalized === 'trustwallet'
-        ? MOBILE_WALLET_DEEP_LINKS.trustWallet
-        : normalized === 'coinbase'
-          ? MOBILE_WALLET_DEEP_LINKS.coinbase
-          : null
+      : normalized === 'coinbase'
+        ? MOBILE_WALLET_DEEP_LINKS.coinbase
+        : null
 
   if (!buildLink || !provider?.on) return () => {}
 
@@ -127,8 +117,7 @@ export async function connectMobileWallet({ target, connectAsync, connectors }) 
   }
 
   let detachUriListener = () => {}
-  const shouldDeepLink =
-    normalized === 'metamask' || normalized === 'trustwallet' || normalized === 'coinbase'
+  const shouldDeepLink = normalized === 'metamask' || normalized === 'coinbase'
 
   try {
     if (shouldDeepLink && typeof walletConnectConnector.getProvider === 'function') {
