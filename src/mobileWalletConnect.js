@@ -29,15 +29,6 @@ function normalizeTarget(target) {
   return `${target || ''}`.toLowerCase()
 }
 
-function resolveWalletConnectConnector(connectors) {
-  return connectors.find((connector) => {
-    const id = (connector.id || '').toLowerCase()
-    const name = (connector.name || '').toLowerCase()
-    const type = (connector.type || '').toLowerCase()
-    return id.includes('walletconnect') || name.includes('walletconnect') || type.includes('walletconnect')
-  })
-}
-
 function resolveMetaMaskSdkConnector(connectors) {
   return connectors.find((connector) => {
     const id = (connector.id || '').toLowerCase()
@@ -125,21 +116,11 @@ async function connectWithFallback({ connectAsync, connector, target }) {
 }
 
 /**
- * Mobile-only wallet connect.
- * - MetaMask / Coinbase: open installed app via native SDK / connector; else app store.
- * - WalletConnect: unchanged (uses WalletConnect modal).
+ * Mobile-only wallet connect for MetaMask and Coinbase.
+ * WalletConnect is handled by ConnectWalletModal (same path as desktop).
  */
 export async function connectMobileWallet({ target, connectAsync, connectors }) {
   const normalized = normalizeTarget(target)
-
-  if (normalized === 'walletconnect') {
-    const walletConnectConnector = resolveWalletConnectConnector(connectors)
-    if (!walletConnectConnector) {
-      return { status: 'fallback', target }
-    }
-    await connectAsync({ connector: walletConnectConnector })
-    return { status: 'connected' }
-  }
 
   if (normalized === 'metamask') {
     if (hasInjectedWallet('metaMask')) {
