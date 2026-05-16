@@ -1,23 +1,3 @@
-import { bsc, mainnet } from 'viem/chains'
-
-const MOBILE_CHAIN_IDS = [mainnet.id, bsc.id]
-
-const MOBILE_WALLET_WC_LINKS = {
-  metaMask: (uri) => `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`,
-  coinbase: (uri) => `https://go.cb-w.com/wc?uri=${encodeURIComponent(uri)}`,
-}
-
-const MOBILE_STORE_LINKS = {
-  metaMask: {
-    android: 'https://play.google.com/store/apps/details?id=io.metamask',
-    ios: 'https://apps.apple.com/app/metamask/id1438144200',
-  },
-  coinbase: {
-    android: 'https://play.google.com/store/apps/details?id=org.toshi',
-    ios: 'https://apps.apple.com/app/coinbase-wallet/id1278383455',
-  },
-}
-
 const MOBILE_WALLET_DOWNLOAD = {
   metaMask:
     import.meta.env.VITE_METAMASK_DOWNLOAD_URL || 'https://metamask.io/download/',
@@ -28,8 +8,18 @@ const MOBILE_WALLET_DOWNLOAD = {
     import.meta.env.VITE_WALLETCONNECT_INFO_URL || 'https://walletconnect.com/explorer',
 }
 
-const APP_NAME = 'Novex Labs'
-const APP_LOGO_URL = 'https://walletconnect.com/walletconnect-logo.png'
+const MOBILE_WALLET_STORE = {
+  metaMask: {
+    android: 'https://play.google.com/store/apps/details?id=io.metamask',
+    ios: 'https://apps.apple.com/app/metamask/id1438144202',
+    default: MOBILE_WALLET_DOWNLOAD.metaMask,
+  },
+  coinbase: {
+    android: 'https://play.google.com/store/apps/details?id=org.toshi',
+    ios: 'https://apps.apple.com/app/coinbase-wallet/id1278383455',
+    default: MOBILE_WALLET_DOWNLOAD.coinbase,
+  },
+}
 
 export function isMobileDevice() {
   if (typeof window === 'undefined') return false
@@ -37,37 +27,16 @@ export function isMobileDevice() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
 }
 
+function isAndroid() {
+  return /Android/i.test(navigator.userAgent || '')
+}
+
+function isIOS() {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+}
+
 function normalizeTarget(target) {
   return `${target || ''}`.toLowerCase()
-}
-
-function getWalletConnectProjectId() {
-  return (
-    import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ||
-    import.meta.env.VITE_PROJECT_ID ||
-    ''
-  )
-    .toString()
-    .trim()
-}
-
-function getWalletMetadata() {
-  return {
-    name: APP_NAME,
-    description: 'Connect your wallet to Novex Labs',
-    url:
-      typeof window !== 'undefined' && window.location?.origin
-        ? window.location.origin
-        : 'http://localhost:5173',
-    icons: [APP_LOGO_URL],
-  }
-}
-
-function getStoreUrl(targetKey) {
-  const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent || '')
-  const links = MOBILE_STORE_LINKS[targetKey]
-  if (!links) return MOBILE_WALLET_DOWNLOAD[targetKey]
-  return isIos ? links.ios : links.android
 }
 
 function resolveWalletConnectConnector(connectors) {
@@ -82,7 +51,7 @@ function resolveWalletConnectConnector(connectors) {
 function resolveInjectedConnector(connectors, target) {
   const normalized = normalizeTarget(target)
 
-  return connectors.find((connector) => {
+  const named = connectors.find((connector) => {
     const id = (connector.id || '').toLowerCase()
     const name = (connector.name || '').toLowerCase()
 
@@ -94,14 +63,14 @@ function resolveInjectedConnector(connectors, target) {
     }
     return false
   })
-}
 
-function resolveCoinbaseConnector(connectors) {
-  return connectors.find((connector) => {
-    const id = (connector.id || '').toLowerCase()
-    const name = (connector.name || '').toLowerCase()
-    return id.includes('coinbase') || name.includes('coinbase')
-  })
+  if (named) return named
+
+  if (hasInjectedWallet(target)) {
+    return connectors.find((connector) => (connector.id || '').toLowerCase() === 'injected')
+  }
+
+  return undefined
 }
 
 export function hasInjectedWallet(target) {
@@ -119,110 +88,56 @@ function openMobileUrl(url) {
   window.location.assign(url)
 }
 
-/** If the wallet app does not open, send the user to the app store. */
-function openWalletAppOrStore(appUrl, storeUrl, waitMs = 2600) {
-  const startedAt = Date.now()
-  let fallbackTimerId = null
+function getStoreUrl(target) {
+  const normalized = normalizeTarget(target)
+  const store = normalized === 'coinbase' ? MOBILE_WALLET_STORE.coinbase : MOBILE_WALLET_STORE.metaMask
+  if (isAndroid()) return store.android
+  if (isIOS()) return store.ios
+  return store.default
+}
 
-  const clearFallback = () => {
-    if (fallbackTimerId !== null) {
-      window.clearTimeout(fallbackTimerId)
-      fallbackTimerId = null
-    }
+function buildWalletDappLink(target) {
+  const url = window.location.href
+  const normalized = normalizeTarget(target)
+
+  if (normalized === 'metamask') {
+    return `https://metamask.app.link/dapp/${encodeURIComponent(url)}`
   }
-
-  const onVisibilityChange = () => {
-    if (document.visibilityState === 'hidden') {
-      clearFallback()
-    }
+  if (normalized === 'coinbase') {
+    return `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(url)}`
   }
+  return null
+}
 
-  document.addEventListener('visibilitychange', onVisibilityChange)
-  openMobileUrl(appUrl)
-
-  fallbackTimerId = window.setTimeout(() => {
-    document.removeEventListener('visibilitychange', onVisibilityChange)
-    if (document.visibilityState === 'visible' && Date.now() - startedAt >= waitMs - 200) {
-      openMobileUrl(storeUrl)
-    }
-  }, waitMs)
-
-  return () => {
-    clearFallback()
-    document.removeEventListener('visibilitychange', onVisibilityChange)
+/**
+ * Opens the wallet app with this dapp (universal link).
+ * Installed → native app; not installed → Play Store / App Store via the link provider.
+ */
+function openMobileWalletApp(target) {
+  const dappLink = buildWalletDappLink(target)
+  if (dappLink) {
+    openMobileUrl(dappLink)
+    return
   }
+  openMobileUrl(getStoreUrl(target))
 }
 
 export function openMobileWalletDownload(target) {
   const normalized = normalizeTarget(target)
-  if (normalized === 'metamask') {
-    openMobileUrl(getStoreUrl('metaMask'))
+  if (normalized === 'walletconnect') {
+    openMobileUrl(MOBILE_WALLET_DOWNLOAD.walletConnect)
     return
   }
-  if (normalized === 'coinbase') {
-    openMobileUrl(getStoreUrl('coinbase'))
+  if (normalized === 'metamask' || normalized === 'coinbase') {
+    openMobileUrl(getStoreUrl(target))
     return
   }
   openMobileUrl(MOBILE_WALLET_DOWNLOAD.walletConnect)
 }
 
-async function connectWithWalletDeepLink({ target, connectAsync, connectors }) {
-  const normalized = normalizeTarget(target)
-  const walletKey = normalized === 'metamask' ? 'metaMask' : 'coinbase'
-  const projectId = getWalletConnectProjectId()
-  const wagmiWalletConnect = resolveWalletConnectConnector(connectors)
-
-  if (!projectId || !wagmiWalletConnect) {
-    return { status: 'fallback', target }
-  }
-
-  const buildWcLink = MOBILE_WALLET_WC_LINKS[walletKey]
-  const storeUrl = getStoreUrl(walletKey)
-
-  const { EthereumProvider } = await import('@walletconnect/ethereum-provider')
-  const provider = await EthereumProvider.init({
-    projectId,
-    showQrModal: false,
-    metadata: getWalletMetadata(),
-    optionalChains: MOBILE_CHAIN_IDS,
-  })
-
-  let cleanupStoreFallback = () => {}
-
-  try {
-    await new Promise((resolve, reject) => {
-      const onDisplayUri = (uri) => {
-        if (!uri) return
-        cleanupStoreFallback()
-        cleanupStoreFallback = openWalletAppOrStore(buildWcLink(uri), storeUrl)
-      }
-
-      provider.on('display_uri', onDisplayUri)
-
-      provider
-        .connect()
-        .then(() => {
-          provider.removeListener('display_uri', onDisplayUri)
-          resolve()
-        })
-        .catch((error) => {
-          provider.removeListener('display_uri', onDisplayUri)
-          reject(error)
-        })
-    })
-
-    await provider.enable()
-    await connectAsync({ connector: wagmiWalletConnect })
-    return { status: 'connected' }
-  } finally {
-    cleanupStoreFallback()
-  }
-}
-
 /**
- * Mobile-only wallet connect.
- * - WalletConnect button: unchanged (uses wagmi WalletConnect + modal).
- * - MetaMask / Coinbase: deep link to app, Play Store / App Store if not installed.
+ * Mobile-only connect. WalletConnect button uses WC modal (unchanged).
+ * MetaMask / Coinbase open the native app via dapp deep link when not already injected.
  */
 export async function connectMobileWallet({ target, connectAsync, connectors }) {
   const normalized = normalizeTarget(target)
@@ -230,7 +145,7 @@ export async function connectMobileWallet({ target, connectAsync, connectors }) 
   if (normalized === 'walletconnect') {
     const walletConnectConnector = resolveWalletConnectConnector(connectors)
     if (!walletConnectConnector) {
-      return { status: 'fallback', target: 'walletConnect' }
+      return { status: 'fallback', target }
     }
     await connectAsync({ connector: walletConnectConnector })
     return { status: 'connected' }
@@ -241,28 +156,13 @@ export async function connectMobileWallet({ target, connectAsync, connectors }) 
   }
 
   if (hasInjectedWallet(target)) {
-    const injectedConnector = resolveInjectedConnector(connectors, target)
-    if (injectedConnector) {
-      await connectAsync({ connector: injectedConnector })
+    const connector = resolveInjectedConnector(connectors, target)
+    if (connector) {
+      await connectAsync({ connector })
       return { status: 'connected' }
     }
   }
 
-  if (normalized === 'coinbase') {
-    const coinbaseConnector = resolveCoinbaseConnector(connectors)
-    if (coinbaseConnector) {
-      try {
-        await connectAsync({ connector: coinbaseConnector })
-        return { status: 'connected' }
-      } catch {
-        // Fall through to WalletConnect deep link + store fallback.
-      }
-    }
-  }
-
-  try {
-    return await connectWithWalletDeepLink({ target, connectAsync, connectors })
-  } catch {
-    return { status: 'fallback', target }
-  }
+  openMobileWalletApp(target)
+  return { status: 'redirected' }
 }
