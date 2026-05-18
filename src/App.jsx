@@ -5,7 +5,7 @@ import { FaDiscord, FaInstagram } from 'react-icons/fa'
 import { FaXTwitter } from 'react-icons/fa6'
 import { SiBinance } from 'react-icons/si'
 import { SiTelegram, SiTiktok } from 'react-icons/si'
-import { useAccount, useDisconnect } from 'wagmi'
+import { useActiveAccount, useActiveWallet, useDisconnect } from 'thirdweb/react'
 import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 import './App.css'
 import ConnectWalletModal from './ConnectWalletModal'
@@ -138,10 +138,19 @@ function App() {
   const [guideModalOpen, setGuideModalOpen] = useState(false)
   const [guideModalClosing, setGuideModalClosing] = useState(false)
   const guideHandoffTimerRef = useRef(null)
-  const { address, isConnected } = useAccount()
-  const { disconnectAsync } = useDisconnect()
+  const account = useActiveAccount()
+  const activeWallet = useActiveWallet()
+  const { disconnect } = useDisconnect()
+  const address = account?.address
+  const isConnected = Boolean(address)
 
   const shortAddress = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : ''
+
+  function handleDisconnect() {
+    if (activeWallet) {
+      disconnect(activeWallet)
+    }
+  }
 
   useEffect(() => {
     if (!guideModalOpen) return undefined
@@ -205,9 +214,7 @@ function App() {
                   <button
                     className="cta-btn mobile-buy-btn"
                     type="button"
-                    onClick={async () => {
-                      await disconnectAsync()
-                    }}
+                    onClick={handleDisconnect}
                   >
                     Disconnect
                   </button>
@@ -233,9 +240,7 @@ function App() {
                 <button
                   className="cta-btn"
                   type="button"
-                  onClick={async () => {
-                    await disconnectAsync()
-                  }}
+                  onClick={handleDisconnect}
                 >
                   Disconnect
                 </button>
