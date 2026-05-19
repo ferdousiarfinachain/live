@@ -144,6 +144,9 @@
     radial-gradient(circle at 86% 14%, rgba(121, 221, 255, 0.22), transparent 46%),
     radial-gradient(circle at 14% 86%, rgba(92, 153, 255, 0.16), transparent 48%);
   padding: 12px 14px;
+  box-shadow:
+    inset 0 0 0 1px rgba(173, 230, 255, 0.24),
+    0 10px 24px rgba(4, 16, 40, 0.42);
   position: relative;
   overflow: hidden;
   transition:
@@ -173,7 +176,10 @@
   transform: translateY(-6px) scale(1.01);
   filter: brightness(1.07) saturate(1.08);
   border-color: rgba(153, 231, 255, 0.9);
-  
+  box-shadow:
+    inset 0 0 0 1px rgba(214, 243, 255, 0.42),
+    0 18px 38px rgba(4, 16, 40, 0.58),
+    0 0 34px rgba(105, 213, 255, 0.35);
 }
 
 .about-section__why-card:hover::after {
@@ -223,8 +229,8 @@
   height: 18px;
   border-radius: 50%;
   color: #06131d;
-  background: linear-gradient(135deg, #ff5100, #0bd5f0);
- 
+  background: linear-gradient(135deg, #7dffbd, #4fd1ff);
+  box-shadow: 0 0 14px rgba(79, 209, 255, 0.58);
   display: inline-grid;
   place-items: center;
   font-size: 0.82rem;

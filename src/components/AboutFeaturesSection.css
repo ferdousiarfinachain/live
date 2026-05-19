@@ -1184,8 +1184,8 @@
 @media (max-width: 560px) {
   .about-features {
     margin: 14px auto 22px;
-    padding-left: max(12px, env(safe-area-inset-left, 0px));
-    padding-right: max(12px, env(safe-area-inset-right, 0px));
+    padding-left: max(10px, env(safe-area-inset-left, 0px));
+    padding-right: max(10px, env(safe-area-inset-right, 0px));
     padding-top: 0;
     padding-bottom: 0;
     width: 100%;
@@ -1195,21 +1195,49 @@
 
   .hero-shell {
     border-radius: 20px;
-    padding: 10px;
+    padding: 8px;
     overflow: hidden;
     max-width: 100%;
     box-sizing: border-box;
   }
 
+  .presale-stack {
+    max-width: 430px;
+    margin: 0 auto;
+    align-self: center;
+  }
+
+  .presale-card,
+  .presale-card * {
+    min-width: 0;
+  }
+
+  .presale-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 18px 14px 14px;
+    border-radius: 22px;
+    box-sizing: border-box;
+  }
+
+  .presale-title {
+    font-size: clamp(1.08rem, 5.6vw, 1.45rem);
+    line-height: 1.18;
+    letter-spacing: 0.02em;
+  }
+
   .presale-prices {
-    margin-top: 10px;
-    gap: 6px;
-    flex-wrap: wrap;
+    margin-top: 12px;
+    gap: 8px;
+    align-items: center;
+    text-align: center;
   }
 
   .presale-prices p {
-    flex: 1 1 100%;
-    font-size: clamp(0.75rem, 3.4vw, 0.95rem);
+    flex: 1 1 0;
+    font-size: clamp(0.72rem, 3.2vw, 0.9rem);
+    line-height: 1.25;
   }
 
   .hero-title {
@@ -1227,14 +1255,7 @@
 
   .presale-methods {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
-  }
-
-  .presale-card {
-    width: 100%;
-    max-width: 100%;
-    margin: 0 auto;
-    justify-self: stretch;
+    gap: 6px;
   }
 
   .presale-card.claim-panel {
@@ -1272,7 +1293,8 @@
   }
 
   .presale-subtitle {
-    font-size: clamp(0.8rem, 3.6vw, 1.02rem);
+    margin: 12px 0 10px;
+    font-size: clamp(0.84rem, 3.8vw, 1rem);
   }
 
   .presale-title {
@@ -1287,7 +1309,8 @@
   }
 
   .countdown {
-    padding: 8px;
+    margin-top: 8px;
+    padding: 6px 0;
   }
 
   .countdown__grid {
@@ -1295,7 +1318,8 @@
   }
 
   .countdown__item {
-    padding: 7px 4px 6px;
+    border-radius: 10px;
+    padding: 7px 3px 6px;
   }
 
   .countdown__item strong {
@@ -1309,17 +1333,21 @@
 
   .presale-inputs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 10px;
   }
 
   .method-box {
-    min-height: 34px;
+    min-height: 36px;
     padding: 4px 3px;
     justify-content: center;
     gap: 3px;
+    border-radius: 10px;
   }
 
   .method-copy strong {
-    font-size: clamp(0.62rem, 2.8vw, 0.82rem);
+    font-size: clamp(0.58rem, 2.7vw, 0.78rem);
+    white-space: nowrap;
   }
 
   .method-icon {
@@ -1333,8 +1361,11 @@
   }
 
   .presale-connect-btn {
-    padding: 9px 10px;
-    font-size: clamp(1rem, 5.2vw, 1.25rem);
+    margin-top: 10px;
+    min-height: 48px;
+    padding: 10px 12px;
+    border-radius: 13px;
+    font-size: clamp(1.02rem, 5.4vw, 1.26rem);
   }
 
   .presale-referral-link {
@@ -1363,8 +1394,8 @@
 
 @media (max-width: 390px) {
   .presale-card {
-    padding: 18px 12px 12px;
-    border-width: 3px;
+    padding: 16px 11px 12px;
+    border-width: 1px;
   }
 
   .presale-card.claim-panel {
@@ -1372,14 +1403,15 @@
   }
 
   .presale-title {
-    font-size: clamp(0.98rem, 4.2vw, 1.22rem);
-    padding: 0 6px;
+    font-size: clamp(1rem, 5.6vw, 1.24rem);
+    padding: 0 4px;
     letter-spacing: 0.02em;
   }
 
   .presale-prices {
-    flex-direction: column;
-    text-align: left;
+    flex-direction: row;
+    text-align: center;
+    gap: 6px;
   }
 
   .presale-prices p {
@@ -1388,11 +1420,12 @@
 
   .presale-raised,
   .presale-subtitle {
-    font-size: 1.05rem;
+    font-size: 0.92rem;
   }
 
   .presale-methods {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .countdown__item strong {
@@ -1404,7 +1437,8 @@
   }
 
   .presale-connect-btn {
-    padding: 8px 9px;
+    min-height: 46px;
+    padding: 9px 10px;
   }
 }
 
@@ -1414,12 +1448,13 @@
   }
 
   .presale-methods {
-    gap: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .method-box {
-    padding: 3px 2px;
-    min-height: 32px;
+    padding: 5px 4px;
+    min-height: 36px;
     gap: 3px;
   }
 }
