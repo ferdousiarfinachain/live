@@ -2,7 +2,7 @@ import { Component, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-import Web3Providers from './Web3Providers'
+import { Web3Providers } from './wallet'
 
 if (typeof window !== 'undefined') {
   try {

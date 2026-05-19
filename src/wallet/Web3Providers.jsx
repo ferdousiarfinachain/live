@@ -1,5 +1,5 @@
 import { AutoConnect, ThirdwebProvider } from 'thirdweb/react'
-import { appChains, supportedWallets, thirdwebClient } from './thirdwebClient'
+import { supportedWallets, thirdwebClient } from './thirdwebClient'
 
 export default function Web3Providers({ children }) {
   return (
@@ -11,5 +11,3 @@ export default function Web3Providers({ children }) {
     </ThirdwebProvider>
   )
 }
-
-export { appChains, thirdwebClient }

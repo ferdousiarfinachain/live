@@ -60,7 +60,6 @@ export function unlockBodyScroll() {
   document.body.style.width = savedBody.width
   document.body.style.overflow = savedBody.overflow
 
-  // Restore position without honoring html { scroll-behavior: smooth } (avoids visible "auto scroll" on modal close).
   const html = document.documentElement
   const prevInlineScrollBehavior = html.style.scrollBehavior
   html.style.scrollBehavior = 'auto'

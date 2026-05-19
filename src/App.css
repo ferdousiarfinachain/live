@@ -1407,6 +1407,20 @@ html.scroll-locked {
   width: 18px;
   height: 2px;
   background: var(--ink);
+  border-radius: 999px;
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+
+.menu-btn.open span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.menu-btn.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-btn.open span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 

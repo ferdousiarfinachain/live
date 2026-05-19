@@ -1,0 +1,11 @@
+export { default as Web3Providers } from './Web3Providers'
+export { default as ConnectWalletModal, MODAL_CLOSE_MS } from './ConnectWalletModal'
+export { useWalletSession } from './useWalletSession'
+export { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
+export {
+  thirdwebClient,
+  appChains,
+  defaultChain,
+  supportedWallets,
+  appMetadata,
+} from './thirdwebClient'

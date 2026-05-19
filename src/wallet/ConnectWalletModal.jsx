@@ -11,7 +11,10 @@ import {
 } from './thirdwebClient'
 import './ConnectWalletModal.css'
 
-const MODAL_CLOSE_MS = 520
+export const MODAL_CLOSE_MS = 520
+
+const METAMASK_DOWNLOAD_URL =
+  import.meta.env.VITE_METAMASK_DOWNLOAD_URL || 'https://metamask.io/download/'
 
 export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
   const [isClosing, setIsClosing] = useState(false)
@@ -87,16 +90,35 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
             </p>
           </div>
         ) : (
-          <ConnectEmbed
-            client={thirdwebClient}
-            wallets={supportedWallets}
-            chains={appChains}
-            chain={defaultChain}
-            appMetadata={appMetadata}
-            theme="dark"
-            className="wallet-modal-thirdweb"
-            onConnect={() => beginClose()}
-          />
+          <>
+            <div className="wallet-modal-header-copy">
+              <h2 className="wallet-modal-title">Connect Wallet</h2>
+              <p className="wallet-modal-subtitle">
+                If you already have a wallet, select it from the options below. If you don&apos;t
+                have a wallet, download{' '}
+                <a
+                  href={METAMASK_DOWNLOAD_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="wallet-modal-link"
+                >
+                  MetaMask
+                </a>{' '}
+                to get started.
+              </p>
+            </div>
+            <ConnectEmbed
+              client={thirdwebClient}
+              wallets={supportedWallets}
+              chains={appChains}
+              chain={defaultChain}
+              appMetadata={appMetadata}
+              theme="dark"
+              className="wallet-modal-thirdweb"
+              showThirdwebBranding={false}
+              onConnect={() => beginClose()}
+            />
+          </>
         )}
 
         <button

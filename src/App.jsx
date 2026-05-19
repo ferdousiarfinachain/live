@@ -5,10 +5,14 @@ import { FaDiscord, FaInstagram } from 'react-icons/fa'
 import { FaXTwitter } from 'react-icons/fa6'
 import { SiBinance } from 'react-icons/si'
 import { SiTelegram, SiTiktok } from 'react-icons/si'
-import { useActiveAccount, useActiveWallet, useDisconnect } from 'thirdweb/react'
-import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
+import {
+  ConnectWalletModal,
+  MODAL_CLOSE_MS,
+  lockBodyScroll,
+  unlockBodyScroll,
+  useWalletSession,
+} from './wallet'
 import './App.css'
-import ConnectWalletModal from './ConnectWalletModal'
 import AboutFeaturesSection from './components/AboutFeaturesSection'
 import FaqStepSection from './components/FaqStepSection'
 import RoadmapSection from './components/RoadmapSection'
@@ -121,8 +125,8 @@ function openCenteredPopup(url, title = 'wallet-download') {
   )
 }
 
-/** Matches `MODAL_CLOSE_MS` in ConnectWalletModal.jsx (guide → connect handoff). */
-const WALLET_GUIDE_HANDOFF_MS = 520
+/** Matches connect modal close duration (guide → connect handoff). */
+const WALLET_GUIDE_HANDOFF_MS = MODAL_CLOSE_MS
 
 const socialLinks = [
   { label: 'X', href: '#', icon: FaXTwitter },
@@ -138,19 +142,7 @@ function App() {
   const [guideModalOpen, setGuideModalOpen] = useState(false)
   const [guideModalClosing, setGuideModalClosing] = useState(false)
   const guideHandoffTimerRef = useRef(null)
-  const account = useActiveAccount()
-  const activeWallet = useActiveWallet()
-  const { disconnect } = useDisconnect()
-  const address = account?.address
-  const isConnected = Boolean(address)
-
-  const shortAddress = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : ''
-
-  function handleDisconnect() {
-    if (activeWallet) {
-      disconnect(activeWallet)
-    }
-  }
+  const { isConnected, shortAddress, handleDisconnect } = useWalletSession()
 
   useEffect(() => {
     if (!guideModalOpen) return undefined
