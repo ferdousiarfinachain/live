@@ -408,7 +408,7 @@
     backdrop-filter: blur(14px);
     z-index: 1;
     background: radial-gradient(circle at 85% 10%, #00e0ff33 0%, #00e0ff00 36%), radial-gradient(circle at 12% 92%, #2b8cff2e 0%, #2b8cff00 45%), linear-gradient(145deg, #0b1220 0%, #0e1a2f 100%);
-    border: 1px solid #68bdff59;
+    border: 1px solid #56b6ffbb;
     border-radius: 28px;
     align-self: start;
     width: 100%;
