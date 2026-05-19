@@ -158,9 +158,9 @@
 }
 
 .wallet-modal-title {
-  margin: 0 0 6px;
+  margin: 0 0 2px;
   padding-right: 0;
-  font-size: 1.22rem;
+  font-size: 1.26rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   text-align: center;
@@ -320,7 +320,7 @@
   cursor: pointer;
   font-family: Inter, system-ui, sans-serif;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
@@ -412,6 +412,8 @@
   margin-top: 2px;
   padding: 12px 14px;
   border-radius: 12px;
+  font-size: 0.92rem;
+
   border: 1px solid rgba(161, 179, 255, 0.5);
   color: #ecf1ff;
   background: linear-gradient(180deg, #071232, #050b20);
