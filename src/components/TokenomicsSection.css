@@ -565,6 +565,22 @@
     padding: 0 2px;
   }
 
+  .tokenomics-chart-wrap {
+    overflow: visible;
+  }
+
+  .tokenomics-chart {
+    width: min(118vw, 440px);
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .tokenomics-chart__svg {
+    transform: translateY(-22px) scale(1.08);
+    transform-origin: center center;
+  }
+
   .tokenomics-vesting {
     padding: 16px 14px 18px;
   }

@@ -217,17 +217,26 @@
 .about-section__content li {
   line-height: 1.55;
   position: relative;
-  padding-left: 26px;
+  padding-left: 30px;
 }
 
 .about-section__content li::before {
-  content: "✔";
+  content: "✓";
   position: absolute;
   left: 0;
-  top: 1px;
-  color: #74d7ff;
-  font-size: 0.9rem;
-  text-shadow: 0 0 8px rgba(97, 215, 255, 0.45);
+  top: 0.18em;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #06131d;
+  background: linear-gradient(135deg, #7dffbd, #4fd1ff);
+  box-shadow: 0 0 14px rgba(79, 209, 255, 0.58);
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: none;
 }
 
 .about-section__cta {
@@ -1548,6 +1557,22 @@ html.scroll-locked {
 
   .about-section__image-space img {
     min-height: 280px;
+  }
+
+  .about-section__content ul {
+    margin-left: 0;
+    padding-left: 0;
+  }
+
+  .about-section__content li {
+    padding-left: 32px;
+  }
+
+  .about-section__content li::before {
+    top: 0.2em;
+    width: 19px;
+    height: 19px;
+    font-size: 0.86rem;
   }
 
   .how-to-buy__grid {
