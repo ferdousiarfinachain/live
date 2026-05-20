@@ -1034,6 +1034,7 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  border: none;
   border-radius: 14px;
   background: linear-gradient(135deg, #ff5e00 82%, #ff7b00 82%, #ff7b00 82%);
   color: #ffffff;
@@ -1157,11 +1158,13 @@
 
 
   .presale-card {
-    order: 2;
     border-radius: 24px;
-    padding: 20px 14px 14px;
+    padding: 20px 16px 16px;
     max-width: 100%;
     justify-self: stretch;
+    box-shadow:
+      0 0 0 1px rgba(86, 182, 255, 0.28),
+      0 10px 36px rgba(0, 120, 255, 0.14);
   }
 
   .presale-card.claim-panel {
@@ -1183,9 +1186,9 @@
 
 @media (max-width: 560px) {
   .about-features {
-    margin: 14px auto 22px;
-    padding-left: max(10px, env(safe-area-inset-left, 0px));
-    padding-right: max(10px, env(safe-area-inset-right, 0px));
+    margin: 10px auto 18px;
+    padding-left: max(8px, env(safe-area-inset-left, 0px));
+    padding-right: max(8px, env(safe-area-inset-right, 0px));
     padding-top: 0;
     padding-bottom: 0;
     width: 100%;
@@ -1195,14 +1198,16 @@
 
   .hero-shell {
     border-radius: 20px;
-    padding: 8px;
+    padding: 6px;
+    gap: 10px;
     overflow: hidden;
     max-width: 100%;
     box-sizing: border-box;
   }
 
   .presale-stack {
-    max-width: 430px;
+    width: 100%;
+    max-width: min(100%, 420px);
     margin: 0 auto;
     align-self: center;
   }
@@ -1216,28 +1221,33 @@
     width: 100%;
     max-width: 100%;
     margin: 0 auto;
-    padding: 18px 14px 14px;
+    padding: 18px 14px 16px;
     border-radius: 22px;
     box-sizing: border-box;
+    box-shadow:
+      0 0 0 1px rgba(86, 182, 255, 0.35),
+      0 12px 40px rgba(0, 140, 255, 0.16);
   }
 
   .presale-title {
-    font-size: clamp(1.08rem, 5.6vw, 1.45rem);
-    line-height: 1.18;
+    font-size: clamp(0.98rem, 4.9vw, 1.28rem);
+    line-height: 1.2;
     letter-spacing: 0.02em;
+    white-space: nowrap;
   }
 
   .presale-prices {
-    margin-top: 12px;
-    gap: 8px;
-    align-items: center;
-    text-align: center;
+    margin-top: 10px;
+    gap: 6px;
+    align-items: flex-start;
+    text-align: left;
   }
 
   .presale-prices p {
     flex: 1 1 0;
-    font-size: clamp(0.72rem, 3.2vw, 0.9rem);
+    font-size: clamp(0.7rem, 3vw, 0.86rem);
     line-height: 1.25;
+    white-space: nowrap;
   }
 
   .hero-title {
@@ -1294,12 +1304,7 @@
 
   .presale-subtitle {
     margin: 12px 0 10px;
-    font-size: clamp(0.84rem, 3.8vw, 1rem);
-  }
-
-  .presale-title {
-    white-space: normal;
-    overflow-wrap: anywhere;
+    font-size: clamp(0.82rem, 3.6vw, 0.98rem);
   }
 
   .presale-title.claim-panel-headline {
@@ -1308,68 +1313,107 @@
     font-size: clamp(0.9rem, 4.2vw, 1.14rem);
   }
 
+  .presale-raised {
+    margin-top: 10px;
+    font-size: clamp(0.8rem, 3.4vw, 0.95rem);
+    line-height: 1.35;
+  }
+
   .countdown {
     margin-top: 8px;
-    padding: 6px 0;
+    padding: 4px 0 2px;
   }
 
   .countdown__grid {
-    gap: 6px;
+    gap: 5px;
   }
 
   .countdown__item {
     border-radius: 10px;
-    padding: 7px 3px 6px;
+    border-color: rgba(89, 176, 255, 0.42);
+    padding: 8px 2px 6px;
   }
 
   .countdown__item strong {
-    font-size: clamp(0.88rem, 4.6vw, 1.2rem);
+    font-size: clamp(0.95rem, 4.8vw, 1.22rem);
   }
 
   .countdown__item span {
-    font-size: clamp(0.48rem, 2.6vw, 0.62rem);
-    letter-spacing: 0.04em;
+    font-size: clamp(0.5rem, 2.4vw, 0.6rem);
+    letter-spacing: 0.06em;
   }
 
   .presale-inputs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
+    gap: 6px;
     margin-top: 10px;
   }
 
-  .method-box {
-    min-height: 36px;
-    padding: 4px 3px;
-    justify-content: center;
-    gap: 3px;
+  .presale-input-box span {
+    font-size: clamp(0.68rem, 2.9vw, 0.82rem);
+  }
+
+  .presale-input-field,
+  .presale-input-field--readonly {
+    min-height: 40px;
     border-radius: 10px;
   }
 
+  .presale-input-native,
+  .presale-input-native--readonly {
+    font-size: clamp(0.86rem, 3.8vw, 1rem);
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .presale-max-btn {
+    min-width: 38px;
+    font-size: 0.62rem;
+  }
+
+  .method-box {
+    min-height: 34px;
+    padding: 3px 2px;
+    justify-content: center;
+    gap: 2px;
+    border-radius: 9px;
+  }
+
   .method-copy strong {
-    font-size: clamp(0.58rem, 2.7vw, 0.78rem);
+    font-size: clamp(0.56rem, 2.5vw, 0.72rem);
     white-space: nowrap;
   }
 
   .method-icon {
-    width: 15px;
-    height: 15px;
-    font-size: 11px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .presale-progress {
+    margin-top: 10px;
   }
 
   .presale-progress span {
-    height: 12px;
+    height: 11px;
   }
 
   .presale-connect-btn {
     margin-top: 10px;
-    min-height: 48px;
+    min-height: 46px;
     padding: 10px 12px;
-    border-radius: 13px;
-    font-size: clamp(1.02rem, 5.4vw, 1.26rem);
+    border-radius: 12px;
+    font-size: clamp(0.98rem, 5vw, 1.2rem);
+    font-weight: 700;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      0 4px 0 #a34900,
+      0 10px 20px rgba(255, 122, 0, 0.32);
   }
 
   .presale-referral-link {
-    margin-top: 8px;
+    margin-top: 10px;
+    color: #e8ecff;
+    font-size: clamp(0.8rem, 3.4vw, 0.95rem);
   }
 
   .presale-referral-link.claim-panel-referral {
@@ -1394,8 +1438,7 @@
 
 @media (max-width: 390px) {
   .presale-card {
-    padding: 16px 11px 12px;
-    border-width: 1px;
+    padding: 16px 12px 14px;
   }
 
   .presale-card.claim-panel {
@@ -1403,58 +1446,42 @@
   }
 
   .presale-title {
-    font-size: clamp(1rem, 5.6vw, 1.24rem);
-    padding: 0 4px;
-    letter-spacing: 0.02em;
-  }
-
-  .presale-prices {
-    flex-direction: row;
-    text-align: center;
-    gap: 6px;
+    font-size: clamp(0.96rem, 4.8vw, 1.18rem);
+    padding: 0 2px;
   }
 
   .presale-prices p {
-    flex-basis: auto;
+    font-size: clamp(0.66rem, 2.8vw, 0.8rem);
   }
 
   .presale-raised,
   .presale-subtitle {
-    font-size: 0.92rem;
+    font-size: 0.86rem;
   }
 
   .presale-methods {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .countdown__grid {
     gap: 4px;
   }
 
   .countdown__item strong {
-    font-size: clamp(0.82rem, 4.4vw, 1.1rem);
+    font-size: clamp(0.88rem, 4.2vw, 1.05rem);
   }
 
   .countdown__item span {
-    font-size: clamp(0.45rem, 2.5vw, 0.58rem);
+    font-size: clamp(0.44rem, 2.2vw, 0.55rem);
+  }
+
+  .presale-inputs {
+    gap: 5px;
   }
 
   .presale-connect-btn {
-    min-height: 46px;
+    min-height: 44px;
     padding: 9px 10px;
-  }
-}
-
-@media (max-width: 360px) {
-  .presale-inputs {
-    grid-template-columns: 1fr;
-  }
-
-  .presale-methods {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  .method-box {
-    padding: 5px 4px;
-    min-height: 36px;
-    gap: 3px;
+    font-size: clamp(0.94rem, 4.6vw, 1.1rem);
   }
 }

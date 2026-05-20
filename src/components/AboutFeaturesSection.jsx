@@ -171,7 +171,9 @@ function AboutFeaturesSection({
             aria-label="Presale panel"
             hidden={isClaimMode}
           >
-          <h2 className="presale-title">$NOVEX  <em>Presale LIVE</em></h2>
+          <h2 className="presale-title">
+            $NOVEX <em>Presale LIVE</em>
+          </h2>
 
           <div className="presale-prices">
             <p>Actual Price: $0.025</p>
