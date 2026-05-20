@@ -414,7 +414,7 @@
     width: 100%;
     min-width: 0;
     max-width: 430px;
-    padding: 22px 18px 16px;
+    padding: 15px 18px 18px;
     position: relative;
 }
 
@@ -1029,7 +1029,7 @@
 }
 
 .presale-connect-btn {
-  margin-top: 10px;
+  margin-top: 12px;
   width: 100%;
   position: relative;
   isolation: isolate;
@@ -1038,7 +1038,7 @@
   background: linear-gradient(135deg, #ff5e00 82%, #ff7b00 82%, #ff7b00 82%);
   color: #ffffff;
   font-size: clamp(1rem, 1.45vw, 1.35rem);
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0.02em;
   padding: 8px 12px;
   cursor: pointer;
@@ -1076,11 +1076,11 @@
 .presale-connect-btn:hover {
   transform: translateY(-2px) scale(1.03);
   filter: saturate(1.06) brightness(1.03);
-  box-shadow:
+  /* box-shadow:
     0 0 0 5px rgba(255, 179, 71, 0.28),
     0 16px 30px rgba(255, 122, 0, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    0 4px 0 #bc6500;
+    0 4px 0 #bc6500; */
 }
 
 .presale-connect-btn:hover::before {
@@ -1105,7 +1105,7 @@
 .presale-referral-link {
   display: block;
   text-align: center;
-  margin-top: 20px;
+  margin-top: 18px;
   color: #a8b2d1;
   font-size: clamp(0.85rem, 1.1vw, 1.05rem);
   font-weight: 800;

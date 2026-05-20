@@ -268,16 +268,18 @@ function AboutFeaturesSection({
             </button>
           )}
 
-          <a
-            href="#"
-            className="presale-referral-link"
-            onClick={(event) => {
-              event.preventDefault()
-              onNoWallet?.()
-            }}
-          >
-            Don&apos;t have a wallet?
-          </a>
+          {!isConnected ? (
+            <a
+              href="#"
+              className="presale-referral-link"
+              onClick={(event) => {
+                event.preventDefault()
+                onNoWallet?.()
+              }}
+            >
+              Don&apos;t have a wallet?
+            </a>
+          ) : null}
         </article>
 
           <article
@@ -333,16 +335,18 @@ function AboutFeaturesSection({
                 Buy on PancakeSwap
               </a>
             </div>
-            <a
-              href="#"
-              className="presale-referral-link claim-panel-referral"
-              onClick={(event) => {
-                event.preventDefault()
-                onNoWallet?.()
-              }}
-            >
-              Don&apos;t have a wallet?
-            </a>
+            {!isConnected ? (
+              <a
+                href="#"
+                className="presale-referral-link claim-panel-referral"
+                onClick={(event) => {
+                  event.preventDefault()
+                  onNoWallet?.()
+                }}
+              >
+                Don&apos;t have a wallet?
+              </a>
+            ) : null}
           </article>
         </div>
       </div>
