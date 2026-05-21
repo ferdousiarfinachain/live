@@ -1238,10 +1238,10 @@
 
   .presale-prices p {
     flex: 1 1 0;
-    font-size: clamp(0.7rem, 3vw, 0.86rem);
+    font-size: clamp(0.7rem, 3.3vw, 0.92rem);
     line-height: 1.25;
     white-space: nowrap;
-    margin-left: 22px;
+    margin-left: 11px;
   }
 
   .hero-title {
@@ -1340,11 +1340,12 @@
   .presale-inputs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
-    margin-top: 10px;
+    margin-top: 14px
   }
 
   .presale-input-box span {
-    font-size: clamp(0.68rem, 2.9vw, 0.82rem);
+    font-size: clamp(0.68rem, 3.2vw, 0.92rem);
+    margin-left: 22px;
   }
 
   .presale-input-field,
@@ -1374,7 +1375,7 @@
   }
 
   .method-copy strong {
-    font-size: clamp(0.56rem, 2.5vw, 0.72rem);
+    font-size: clamp(0.56rem, 3.3vw, 1.2rem);
     white-space: nowrap;
   }
 
@@ -1404,7 +1405,7 @@
   .presale-referral-link {
     margin-top: 13px;
     color: #e8ecff;
-    font-size: clamp(0.8rem, 3.4vw, 0.95rem);
+    font-size: clamp(0.8rem, 3.7vw, 0.95rem);
   }
 
   .presale-referral-link.claim-panel-referral {
@@ -1442,7 +1443,7 @@
   }
 
   .presale-prices p {
-    font-size: clamp(0.66rem, 2.8vw, 0.8rem);
+    font-size: clamp(0.66rem, 3.3vw, 0.92rem);
   }
 
   .presale-raised,
