@@ -1402,7 +1402,7 @@
   } 
 
   .presale-referral-link {
-    margin-top: 12px;
+    margin-top: 13px;
     color: #e8ecff;
     font-size: clamp(0.8rem, 3.4vw, 0.95rem);
   }
@@ -1429,7 +1429,7 @@
 
 @media (max-width: 390px) {
   .presale-card {
-    padding: 20px 8px 16px;
+    padding: 20px 8px 18px;
   }
 
   .presale-card.claim-panel {
