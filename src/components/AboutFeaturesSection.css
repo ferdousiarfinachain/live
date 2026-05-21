@@ -715,6 +715,7 @@
   color: #a8b2d1;
   font-size: clamp(0.8rem, 1vw, 1rem);
   font-weight: 800;
+  
 }
 
 .presale-progress {
@@ -1155,13 +1156,11 @@
 
 
   .presale-card {
-    border-radius: 24px;
+    border-radius: 18px;
     padding: 20px 16px 16px;
     max-width: 100%;
     justify-self: stretch;
-    box-shadow:
-      0 0 0 1px rgba(86, 182, 255, 0.28),
-      0 10px 36px rgba(0, 120, 255, 0.14);
+    
   }
 
   .presale-card.claim-panel {
@@ -1219,11 +1218,8 @@
     max-width: 100%;
     margin: 0 auto;
     padding: 18px 14px 16px;
-    border-radius: 22px;
+    border-radius: 18px;
     box-sizing: border-box;
-    box-shadow:
-      0 0 0 1px rgba(86, 182, 255, 0.35),
-      0 12px 40px rgba(0, 140, 255, 0.16);
   }
 
   .presale-title {
@@ -1245,6 +1241,7 @@
     font-size: clamp(0.7rem, 3vw, 0.86rem);
     line-height: 1.25;
     white-space: nowrap;
+    margin-left: 22px;
   }
 
   .hero-title {
@@ -1432,7 +1429,7 @@
 
 @media (max-width: 390px) {
   .presale-card {
-    padding: 18px 12px 15px;
+    padding: 20px 8px 16px;
   }
 
   .presale-card.claim-panel {
