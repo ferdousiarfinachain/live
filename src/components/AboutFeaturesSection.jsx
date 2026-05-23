@@ -1,13 +1,19 @@
 import { useMemo, useState } from 'react'
 import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
-import ethLogo from 'cryptocurrency-icons/svg/color/eth.svg'
+import { usePresaleBuy, usePresaleQuote } from '../wallet/usePresaleBuy'
+import { usePresaleStats } from '../wallet/usePresaleStats'
+import PurchaseSuccessModal from '../wallet/PurchaseSuccessModal'
+
+const PRESALE_ACTUAL_PRICE_USD = 0.0007
+const PRESALE_LISTING_PRICE_USD = 0.001
+const PRESALE_ACTUAL_PRICE_LABEL = '$0.0007'
+const PRESALE_LISTING_PRICE_LABEL = '$0.001'
 import bnbLogo from 'cryptocurrency-icons/svg/color/bnb.svg'
 import usdtLogo from 'cryptocurrency-icons/svg/color/usdt.svg'
 import usdcLogo from 'cryptocurrency-icons/svg/color/usdc.svg'
 
 const paymentMethods = [
-  { logo: ethLogo, name: 'ETH' },
   { logo: bnbLogo, name: 'BNB' },
   { logo: usdtLogo, name: 'USDT' },
   { logo: usdcLogo, name: 'USDC' },
@@ -26,16 +32,33 @@ function AboutFeaturesSection({
   onProceedToPay,
   maxPayAmount = '',
 }) {
-  const [selectedPayment, setSelectedPayment] = useState('USDT')
+  const [selectedPayment, setSelectedPayment] = useState(paymentMethods[0].name)
   const [payAmount, setPayAmount] = useState('')
-  const tokenPriceUsd = 0.025
+  const [successPurchase, setSuccessPurchase] = useState(null)
+  const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
+  const presaleStats = usePresaleStats()
+  const { quotedReceive } = usePresaleQuote(selectedPayment, payAmount, isPresaleConfigured)
   const receiveAmount = useMemo(() => {
+    if (quotedReceive) {
+      return quotedReceive
+    }
     const amount = Number(payAmount)
     if (!Number.isFinite(amount) || amount <= 0) {
       return ''
     }
-    return (amount / tokenPriceUsd).toFixed(2)
-  }, [payAmount])
+    // Stablecoins only when on-chain quote is unavailable (e.g. token not in .env).
+    if (selectedPayment === 'USDT' || selectedPayment === 'USDC') {
+      return (amount / PRESALE_ACTUAL_PRICE_USD).toFixed(2)
+    }
+    return ''
+  }, [payAmount, quotedReceive, selectedPayment])
+
+  const raisedDisplay = presaleStats.isPresaleConfigured
+    ? `${presaleStats.raisedLabel} / ${presaleStats.goalLabel}`
+    : '$543,291 / $1,000,000'
+  const progressWidth = presaleStats.isPresaleConfigured
+    ? `${presaleStats.progressPercent}%`
+    : '54.3%'
 
   const maxPayRaw = String(maxPayAmount ?? '').trim()
   const maxPayNum = Number(maxPayRaw)
@@ -108,7 +131,32 @@ function AboutFeaturesSection({
     setPayAmount(maxPayRaw)
   }
 
+  async function handleProceedToPay() {
+    if (onProceedToPay) {
+      await onProceedToPay({ paymentMethod: selectedPayment, amount: payAmount })
+      return
+    }
+    if (!isPresaleConfigured) {
+      window.alert('Presale contract is not configured. Set VITE_PRESALE_CONTRACT_ADDRESS in .env')
+      return
+    }
+    const tokensAtPurchase = receiveAmount
+    const amountAtPurchase = payAmount
+    const result = await buy({ paymentMethod: selectedPayment, amountHuman: payAmount })
+    if (result?.transactionHash) {
+      setSuccessPurchase({
+        tokenSymbol: claimTokenSymbol,
+        tokensPurchased: tokensAtPurchase,
+        amountPaid: amountAtPurchase,
+        paymentMethod: selectedPayment,
+        transactionHash: result.transactionHash,
+      })
+      setPayAmount('')
+    }
+  }
+
   return (
+    <>
     <section className="about-features">
       <div className="hero-shell">
         <article className="hero-left">
@@ -172,20 +220,25 @@ function AboutFeaturesSection({
             hidden={isClaimMode}
           >
           <h2 className="presale-title">
-            $NOVEX <em>Presale LIVE</em>
+            $NOVEX <em>{presaleStats.statusLabel}</em>
           </h2>
 
           <div className="presale-prices">
-            <p>Actual Price: $0.025</p>
-            <p>Listing Price: $0.025</p>
+            <p>Actual Price: {PRESALE_ACTUAL_PRICE_LABEL}</p>
+            <p>Listing Price: {PRESALE_LISTING_PRICE_LABEL}</p>
           </div>
 
           <div className="presale-progress" aria-hidden="true">
-            <span />
+            <span style={{ width: progressWidth }} />
           </div>
 
-          <p className="presale-raised">USD Raised: $543,291 / $1,000,000</p>
-          <CountdownTimer />
+          <p className="presale-raised">USD Raised: {raisedDisplay}</p>
+          {presaleStats.error ? (
+            <p className="presale-stats-error" role="status">
+              {presaleStats.error}
+            </p>
+          ) : null}
+          <CountdownTimer targetDate={presaleStats.countdownTarget} />
 
           <h3 className="presale-subtitle">Presale Payment Methods</h3>
           <div className="presale-methods">
@@ -258,17 +311,24 @@ function AboutFeaturesSection({
             <button
               type="button"
               className="presale-connect-btn"
+              disabled={isBuying || !payAmount}
               onClick={() => {
-                onProceedToPay?.()
+                handleProceedToPay().catch(() => {})
               }}
             >
-              PROCEED TO PAY
+              {isBuying ? 'CONFIRM IN WALLET…' : 'PROCEED TO PAY'}
             </button>
           ) : (
             <button type="button" className="presale-connect-btn" onClick={onConnectWallet}>
               Buy Now
             </button>
           )}
+
+          {buyError ? (
+            <p className="presale-buy-error" role="alert">
+              {buyError}
+            </p>
+          ) : null}
 
           {!isConnected ? (
             <a
@@ -354,6 +414,17 @@ function AboutFeaturesSection({
       </div>
 
     </section>
+
+    <PurchaseSuccessModal
+      isOpen={Boolean(successPurchase)}
+      onClose={() => setSuccessPurchase(null)}
+      tokenSymbol={successPurchase?.tokenSymbol}
+      tokensPurchased={successPurchase?.tokensPurchased}
+      amountPaid={successPurchase?.amountPaid}
+      paymentMethod={successPurchase?.paymentMethod}
+      transactionHash={successPurchase?.transactionHash}
+    />
+    </>
   )
 }
 

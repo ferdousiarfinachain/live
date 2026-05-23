@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { Web3Providers } from './wallet'
+import { prefetchPresaleStats } from './wallet/usePresaleStats.js'
+import { prefetchQuoteMetadata } from './wallet/presaleContract.js'
+
+prefetchPresaleStats()
+prefetchQuoteMetadata()
 
 if (typeof window !== 'undefined') {
   try {

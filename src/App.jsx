@@ -264,9 +264,6 @@ function App() {
             isConnected={isConnected}
             onConnectWallet={() => setConnectModalOpen(true)}
             onNoWallet={() => setGuideModalOpen(true)}
-            onProceedToPay={() => {
-              // Presale payment flow hook point.
-            }}
           />
         </section>
 
