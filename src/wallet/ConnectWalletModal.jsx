@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ConnectEmbed } from 'thirdweb/react'
+import { ConnectEmbed, useSwitchActiveWalletChain } from 'thirdweb/react'
 import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 import {
   appChains,
@@ -19,6 +19,7 @@ const METAMASK_DOWNLOAD_URL =
 export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
   const [isClosing, setIsClosing] = useState(false)
   const closeTimerRef = useRef(null)
+  const switchChain = useSwitchActiveWalletChain()
   const visible = isOpen || isClosing
 
   useLayoutEffect(() => {
@@ -116,7 +117,14 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
               theme="dark"
               className="wallet-modal-thirdweb"
               showThirdwebBranding={false}
-              onConnect={() => beginClose()}
+              onConnect={async () => {
+                try {
+                  await switchChain(defaultChain)
+                } catch {
+                  /* user can approve later via auto-switch */
+                }
+                beginClose()
+              }}
             />
           </>
         )}

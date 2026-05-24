@@ -1047,6 +1047,14 @@
   text-align: center;
 }
 
+.presale-network-status {
+  margin: 10px 0 0;
+  color: rgba(223, 233, 255, 0.78);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .presale-stats-error {
   margin: 0 0 0.5rem;
   color: #ffb4b4;

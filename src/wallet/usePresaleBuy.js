@@ -4,6 +4,7 @@ import { readContract } from 'thirdweb'
 import { useActiveAccount, useActiveWallet, useActiveWalletChain, useSwitchActiveWalletChain } from 'thirdweb/react'
 import { toWei } from 'thirdweb/utils'
 import { isPresaleConfigured } from '../contracts/config.js'
+import { ensureAppChain } from './useAutoSwitchChain.js'
 import {
   formatTokenAmount,
   getErc20Contract,
@@ -37,6 +38,16 @@ function formatBuyError(error) {
   }
   if (message.includes('sale not active')) {
     return 'Presale is not active right now.'
+  }
+  if (
+    message.includes('wrong network') ||
+    message.includes('unsupported chain') ||
+    message.includes('chain mismatch') ||
+    message.includes('switch to') ||
+    message.includes('approve the switch') ||
+    message.includes('sepolia')
+  ) {
+    return error.message || 'Wrong network. Approve BSC Testnet in your wallet.'
   }
   if (
     message.includes('insufficient funds') ||
@@ -122,16 +133,7 @@ export function usePresaleBuy() {
   const [buyError, setBuyError] = useState('')
 
   const ensureChain = useCallback(async () => {
-    if (!wallet) {
-      throw new Error('Connect your wallet first.')
-    }
-    const presaleContract = getPresaleContract()
-    if (!presaleContract) {
-      throw new Error('Presale contract is not configured.')
-    }
-    if (walletChain?.id !== presaleContract.chain.id) {
-      await switchChain(presaleContract.chain)
-    }
+    await ensureAppChain({ wallet, walletChain, switchChain })
   }, [switchChain, wallet, walletChain?.id])
 
   const buy = useCallback(

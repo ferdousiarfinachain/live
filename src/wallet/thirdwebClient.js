@@ -1,5 +1,4 @@
 import { createThirdwebClient } from 'thirdweb'
-import { bsc, bscTestnet, ethereum } from 'thirdweb/chains'
 import { createWallet } from 'thirdweb/wallets'
 import { appChain } from '../contracts/config.js'
 
@@ -7,8 +6,10 @@ const clientId = (import.meta.env.VITE_THIRDWEB_CLIENT_ID || '').toString().trim
 
 export const thirdwebClient = clientId ? createThirdwebClient({ clientId }) : null
 
-export const appChains = [bscTestnet, bsc, ethereum]
+export const appChains = [appChain]
 export const defaultChain = appChain
+export const requiredNetworkLabel = appChain.name || 'BSC Testnet'
+export const requiredChainId = appChain.id
 
 /** Same wallet lineup as thirdweb.com/login (official SDK + ConnectEmbed UI). */
 export const supportedWallets = [
