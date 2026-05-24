@@ -3,6 +3,7 @@ import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
 import { usePresaleBuy, usePresaleQuote } from '../wallet/usePresaleBuy'
 import { usePresaleStats } from '../wallet/usePresaleStats'
+import { usePaymentBalance } from '../wallet/usePaymentBalance'
 import PurchaseSuccessModal from '../wallet/PurchaseSuccessModal'
 
 const PRESALE_ACTUAL_PRICE_USD = 0.0007
@@ -30,7 +31,6 @@ function AboutFeaturesSection({
   onConnectWallet,
   onNoWallet,
   onProceedToPay,
-  maxPayAmount = '',
 }) {
   const [selectedPayment, setSelectedPayment] = useState(paymentMethods[0].name)
   const [payAmount, setPayAmount] = useState('')
@@ -38,6 +38,10 @@ function AboutFeaturesSection({
   const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
   const presaleStats = usePresaleStats()
   const { quotedReceive } = usePresaleQuote(selectedPayment, payAmount, isPresaleConfigured)
+  const { maxPayAmount, isLoadingMaxPay, refreshMaxPay } = usePaymentBalance(
+    selectedPayment,
+    isConnected && isPresaleConfigured,
+  )
   const receiveAmount = useMemo(() => {
     if (quotedReceive) {
       return quotedReceive
@@ -152,6 +156,7 @@ function AboutFeaturesSection({
         transactionHash: result.transactionHash,
       })
       setPayAmount('')
+      refreshMaxPay()
     }
   }
 
@@ -278,13 +283,15 @@ function AboutFeaturesSection({
                   type="button"
                   className="presale-max-btn"
                   onClick={applyMaxPay}
-                  disabled={isConnected && !hasValidMax}
+                  disabled={isConnected && (isLoadingMaxPay || !hasValidMax)}
                   title={
                     !isConnected
                       ? 'Connect wallet to use your balance'
-                      : !hasValidMax
-                        ? 'Wallet balance not loaded yet'
-                        : undefined
+                      : isLoadingMaxPay
+                        ? 'Loading wallet balance…'
+                        : !hasValidMax
+                          ? 'No spendable balance for this payment method'
+                          : undefined
                   }
                 >
                   MAX

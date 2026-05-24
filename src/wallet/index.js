@@ -11,4 +11,5 @@ export {
   appMetadata,
 } from './thirdwebClient'
 export { usePresaleBuy, usePresaleQuote } from './usePresaleBuy.js'
+export { usePaymentBalance } from './usePaymentBalance.js'
 export { prefetchPresaleStats, usePresaleStats } from './usePresaleStats.js'
