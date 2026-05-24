@@ -426,6 +426,7 @@
   border-radius: 30px;
   box-sizing: border-box;
   max-width: 420px;
+  margin-top: 52px;
 }
 
 .presale-card[hidden] {
