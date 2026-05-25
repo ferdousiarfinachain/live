@@ -1,0 +1,39 @@
+---
+description: শুধু বলা জিনিস ঠিক করো; অন্য কোড/UI-তে হাত দেওয়া নিষেধ
+alwaysApply: true
+---
+
+# Minimal Scope — Fix Only What Was Asked
+
+## Scope
+
+- শুধুমাত্র যে bug, feature, বা ফাইল **স্পষ্টভাবে ঠিক করতে বলা হয়েছে** সেটাতেই কাজ করো।
+- বলা ছাড়া অন্য কোনো **কোড, লজিক, রিফ্যাক্টর, cleanup, বা "উন্নতি"** করো না।
+- সংশ্লিষ্ট নয় এমন ফাইল import, rename, format, বা style change করো না।
+
+## Side Effects ও Impact
+
+- ঠিক করতে গিয়ে অন্য অংশে impact পড়লে:
+  - **আলাদা লাইন/ব্লক** দিয়ে সীমিত পরিবর্তন করো; যেখানে সম্ভব নতুন helper বা conditional যোগ করো, পুরনো behavior ভাঙো না।
+  - বিদ্যমান কাজ করা flow, API contract, বা UI behavior **নষ্ট করো না**।
+- "একসাথে ঠিক করে দিই" বা drive-by fix করো না — শুধু বলা সমস্যার জন্য প্রয়োজনীয় minimum diff রাখো।
+
+## UI পরিবর্তন
+
+- **CSS, layout, colors, spacing, typography, copy/text, icons, animation** — এগুলো user **স্পষ্টভাবে অনুমতি না দিলে** পরিবর্তন করো না।
+- Bug fix-এর জন্য UI বদলাতে হলে আগে user-কে জানাও বা অনুমতি চাও; অনুমতি ছাড়া visual change করো না।
+- Logic-only fix-এ UI ফাইল (`*.css`, `*.scss`, styled components, className) স্পর্শ করো না যদি না সেটাই বলা হয়।
+
+## উদাহরণ
+
+```
+// ❌ BAD — বলা ছাড়া পুরো ফাংশন refactor
+// ✅ GOOD — শুধু বলা লাইনে null check যোগ, বাকি অপরিবর্তিত
+
+// ❌ BAD — wallet bug fix করতে গিয়ে button color বদলানো
+// ✅ GOOD — শুধু wallet logic; UI untouched unless user approved
+```
+
+## যখন অনিশ্চিত
+
+- Scope unclear হলে **কম পরিবর্তন** বেছে নাও; প্রয়োজনে user-কে জিজ্ঞেস করো, অনুমানে বড় diff দিও না।

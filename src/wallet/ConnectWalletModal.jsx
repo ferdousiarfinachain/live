@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ConnectEmbed, useSwitchActiveWalletChain } from 'thirdweb/react'
+import { ConnectEmbed, useActiveAccount, useSwitchActiveWalletChain } from 'thirdweb/react'
 import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 import {
   appChains,
@@ -20,7 +20,17 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
   const [isClosing, setIsClosing] = useState(false)
   const closeTimerRef = useRef(null)
   const switchChain = useSwitchActiveWalletChain()
+  const account = useActiveAccount()
+  const isConnected = Boolean(account?.address)
   const visible = isOpen || isClosing
+
+  useEffect(() => {
+    if (isOpen && isConnected) {
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
+      setIsClosing(false)
+      onClose()
+    }
+  }, [isOpen, isConnected, onClose])
 
   useLayoutEffect(() => {
     if (!visible) return undefined
@@ -51,7 +61,16 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
     }, MODAL_CLOSE_MS)
   }
 
-  if (!visible) return null
+  function closeAfterConnect() {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
+    setIsClosing(false)
+    switchChain(defaultChain).catch(() => {
+      /* user can approve network switch later */
+    })
+    onClose()
+  }
+
+  if (!visible || (isOpen && isConnected)) return null
 
   return createPortal(
     <div
@@ -117,14 +136,7 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
               theme="dark"
               className="wallet-modal-thirdweb"
               showThirdwebBranding={false}
-              onConnect={async () => {
-                try {
-                  await switchChain(defaultChain)
-                } catch {
-                  /* user can approve later via auto-switch */
-                }
-                beginClose()
-              }}
+              onConnect={closeAfterConnect}
             />
           </>
         )}

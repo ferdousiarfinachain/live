@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react'
 import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
 import { usePresaleBuy, usePresaleQuote } from '../wallet/usePresaleBuy'
+import { usePresaleClaim } from '../wallet/usePresaleClaim'
 import { usePresaleStats } from '../wallet/usePresaleStats'
 import { usePaymentBalance } from '../wallet/usePaymentBalance'
 import PurchaseSuccessModal from '../wallet/PurchaseSuccessModal'
+import ClaimSuccessModal from './ClaimSuccessModal'
 
 const PRESALE_ACTUAL_PRICE_USD = 0.0007
 const PRESALE_LISTING_PRICE_USD = 0.001
@@ -35,6 +37,7 @@ function AboutFeaturesSection({
   const [selectedPayment, setSelectedPayment] = useState(paymentMethods[0].name)
   const [payAmount, setPayAmount] = useState('')
   const [successPurchase, setSuccessPurchase] = useState(null)
+  const [successClaim, setSuccessClaim] = useState(null)
   const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
   const presaleStats = usePresaleStats()
   const { quotedReceive } = usePresaleQuote(selectedPayment, payAmount, isPresaleConfigured)
@@ -71,6 +74,7 @@ function AboutFeaturesSection({
 
   const panelMode = (import.meta.env.VITE_APP_PANEL_MODE || 'buy').toString().trim().toLowerCase()
   const isClaimMode = panelMode === 'claim'
+  const claimState = usePresaleClaim(isClaimMode && isPresaleConfigured)
   const pancakeSwapBuyUrl = (
     import.meta.env.VITE_PANCAKESWAP_BUY_URL || 'https://pancakeswap.finance/swap'
   )
@@ -83,7 +87,9 @@ function AboutFeaturesSection({
   })()
   const claimTokenMoniker = `$${claimTokenSymbol}`
   const claimTokenAddress = (
-    import.meta.env.VITE_CLAIM_TOKEN_ADDRESS || '0xEfC814a4C676a7314a13954e283dE6CEF597e6b2'
+    claimState.tokenAddress ||
+    import.meta.env.VITE_CLAIM_TOKEN_ADDRESS ||
+    '0xc7d77217564221C1B7e0B08D43510367296c23E7'
   )
     .toString()
     .trim()
@@ -105,12 +111,25 @@ function AboutFeaturesSection({
   }, [])
 
   const claimPurchasedDisplay = useMemo(() => {
+    if (isClaimMode && isPresaleConfigured && isConnected) {
+      return claimState.purchasedDisplay
+    }
     const raw = (import.meta.env.VITE_CLAIM_PURCHASED_AMOUNT ?? '0').toString().trim()
     if (raw === '') return '0'
     const n = Number(raw.replace(/,/g, ''))
     if (!Number.isFinite(n)) return raw
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(n)
-  }, [])
+  }, [claimState.purchasedDisplay, isClaimMode, isConnected, isPresaleConfigured])
+
+  const claimButtonLabel = (() => {
+    if (claimState.isLoading) return 'Loading…'
+    if (claimState.isClaiming) return 'Confirm in wallet…'
+    if (!claimState.saleFinalized) return 'Claim pending finalize'
+    if (!claimState.claimStarted) return 'Claim not started'
+    if (Number(claimState.claimableDisplay.replace(/,/g, '')) > 0) return 'Claim'
+    if (Number(claimState.purchasedDisplay.replace(/,/g, '')) > 0) return 'Already claimed'
+    return 'Nothing to claim'
+  })()
 
   const claimPurchasedInfo = (
     import.meta.env.VITE_CLAIM_PURCHASED_INFO ||
@@ -385,10 +404,41 @@ function AboutFeaturesSection({
                 <span aria-hidden="true">i</span>
               </button>
             </p>
+            {isConnected && Number(claimState.claimableDisplay.replace(/,/g, '')) > 0 ? (
+              <p className="claim-panel-purchased">
+                <span className="claim-panel-purchased__text">
+                  CLAIMABLE {claimTokenMoniker} = {claimState.claimableDisplay}
+                </span>
+              </p>
+            ) : null}
+            {claimState.claimError ? (
+              <p className="presale-buy-error" role="alert">
+                {claimState.claimError}
+              </p>
+            ) : null}
             <div className="claim-panel-actions">
               {isConnected ? (
-                <button type="button" className="claim-panel-cta" disabled>
-                  Claim (soon)
+                <button
+                  type="button"
+                  className="claim-panel-cta"
+                  disabled={!claimState.canClaim}
+                  onClick={async () => {
+                    const tokensClaimed = claimState.claimableDisplay
+                    try {
+                      const result = await claimState.claim()
+                      if (result?.transactionHash) {
+                        setSuccessClaim({
+                          tokenSymbol: claimTokenSymbol,
+                          tokensClaimed,
+                          transactionHash: result.transactionHash,
+                        })
+                      }
+                    } catch {
+                      /* claim error shown via claimState.claimError */
+                    }
+                  }}
+                >
+                  {claimButtonLabel}
                 </button>
               ) : (
                 <button type="button" className="claim-panel-cta" onClick={onConnectWallet}>
@@ -430,6 +480,14 @@ function AboutFeaturesSection({
       amountPaid={successPurchase?.amountPaid}
       paymentMethod={successPurchase?.paymentMethod}
       transactionHash={successPurchase?.transactionHash}
+    />
+
+    <ClaimSuccessModal
+      isOpen={Boolean(successClaim)}
+      onClose={() => setSuccessClaim(null)}
+      tokenSymbol={successClaim?.tokenSymbol}
+      tokensClaimed={successClaim?.tokensClaimed}
+      transactionHash={successClaim?.transactionHash}
     />
     </>
   )
