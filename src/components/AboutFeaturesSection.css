@@ -469,7 +469,7 @@
 }
 
 .claim-panel-raised {
-  margin: 30px 0 8px;
+  margin: 21px 0 21px;
   text-align: center;
   font-size: clamp(0.82rem, 2.6vw, 1.1rem);
   font-weight: 800;
@@ -498,7 +498,7 @@
 }
 
 .claim-panel-purchased {
-  margin: 30px 0 18px;
+  margin: 15px 0 11px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -512,7 +512,7 @@
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
   padding: 0 2px;
-  font-size: clamp(0.72rem, 2vw, .72rem);
+  font-size: clamp(0.72rem, 2vw, .80rem);
   font-weight: 900;
   letter-spacing: 0.045em;
   color: #ffb020;
@@ -582,6 +582,7 @@
 
 .claim-panel-cta {
   margin: 0;
+  margin-top: 4px;
   width: 100%;
   position: relative;
   display: flex;
@@ -1359,6 +1360,7 @@
     min-height: 44px;
     padding: 10px 12px;
     font-size: clamp(0.74rem, 3.2vw, 0.92rem);
+    margin-top: 5px;
   }
 
   .presale-subtitle {
