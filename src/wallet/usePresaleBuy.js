@@ -3,18 +3,16 @@ import { prepareContractCall, sendAndConfirmTransaction } from 'thirdweb'
 import { readContract } from 'thirdweb'
 import { useActiveAccount, useActiveWallet, useActiveWalletChain, useSwitchActiveWalletChain } from 'thirdweb/react'
 import { toWei } from 'thirdweb/utils'
-import { isPresaleConfigured } from '../contracts/config.js'
+import { appChain, isPresaleConfigured } from '../contracts/config.js'
+import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
+import { fetchEthUsdPrice } from '../lib/chainlinkEthPrice.js'
+import { estimateTokensFromTreasuryPayment } from '../lib/presaleEstimate.js'
 import { ensureAppChain } from './useAutoSwitchChain.js'
 import {
-  formatTokenAmount,
-  getErc20Contract,
-  getPaymentTokenAddress,
   getPresaleContract,
-  parseHumanAmount,
   quoteReceiveAmount,
-  readPaymentTokenDecimals,
-  readSaleTokenDecimals,
 } from './presaleContract.js'
+import { payViaTreasury } from './treasuryPayment.js'
 
 function formatBuyError(error) {
   if (!error) return 'Purchase failed. Please try again.'
@@ -47,7 +45,7 @@ function formatBuyError(error) {
     message.includes('approve the switch') ||
     message.includes('sepolia')
   ) {
-    return error.message || 'Wrong network. Approve BSC Testnet in your wallet.'
+    return error.message || 'Wrong network. Approve the required network in your wallet.'
   }
   if (
     message.includes('insufficient funds') ||
@@ -58,7 +56,11 @@ function formatBuyError(error) {
   ) {
     return 'Insufficient funds.'
   }
-  if (message.includes('payment token address is missing') || message.includes('unsupported token')) {
+  if (
+    message.includes('payment token address is missing') ||
+    message.includes('unsupported token') ||
+    message.includes('not configured')
+  ) {
     return 'This payment method is not configured yet.'
   }
   if (message.includes('amount too small') || message.includes('no payment sent')) {
@@ -71,14 +73,14 @@ function formatBuyError(error) {
   return 'Purchase failed. Please try again.'
 }
 
-export function usePresaleQuote(paymentMethod, payAmount, enabled = true) {
+export function usePresaleQuote(paymentMethod, payAmount, enabled = true, treasuryNetworkKey = '') {
   const [quotedReceive, setQuotedReceive] = useState('')
   const [isQuoting, setIsQuoting] = useState(false)
   const prevMethodRef = useRef(paymentMethod)
   const prevAmountRef = useRef(payAmount)
 
   useEffect(() => {
-    if (!enabled || !isPresaleConfigured) {
+    if (!enabled) {
       setQuotedReceive('')
       setIsQuoting(false)
       return undefined
@@ -86,6 +88,53 @@ export function usePresaleQuote(paymentMethod, payAmount, enabled = true) {
 
     const amount = String(payAmount ?? '').trim()
     if (!amount || Number(amount) <= 0) {
+      setQuotedReceive('')
+      setIsQuoting(false)
+      return undefined
+    }
+
+    if (isTreasuryPaymentMethod(paymentMethod)) {
+      if (paymentMethod !== 'ETH') {
+        setQuotedReceive(estimateTokensFromTreasuryPayment(paymentMethod, amount))
+        setIsQuoting(false)
+        return undefined
+      }
+
+      if (!treasuryNetworkKey) {
+        setQuotedReceive('')
+        setIsQuoting(false)
+        return undefined
+      }
+
+      let cancelled = false
+      setIsQuoting(true)
+
+      fetchEthUsdPrice(treasuryNetworkKey)
+        .then((ethUsdPrice) => {
+          if (cancelled) {
+            return
+          }
+          setQuotedReceive(
+            estimateTokensFromTreasuryPayment(paymentMethod, amount, { ethUsdPrice }),
+          )
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setQuotedReceive('')
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsQuoting(false)
+          }
+        })
+
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (!isPresaleConfigured) {
       setQuotedReceive('')
       setIsQuoting(false)
       return undefined
@@ -119,7 +168,7 @@ export function usePresaleQuote(paymentMethod, payAmount, enabled = true) {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [enabled, paymentMethod, payAmount])
+  }, [enabled, paymentMethod, payAmount, treasuryNetworkKey])
 
   return { quotedReceive, isQuoting }
 }
@@ -137,19 +186,31 @@ export function usePresaleBuy() {
   }, [switchChain, wallet, walletChain?.id])
 
   const buy = useCallback(
-    async ({ paymentMethod, amountHuman }) => {
+    async ({ paymentMethod, amountHuman, treasuryNetworkKey = '' }) => {
       setBuyError('')
       if (!account) {
         throw new Error('Connect your wallet first.')
       }
 
-      const presaleContract = getPresaleContract()
-      if (!presaleContract) {
-        throw new Error('Presale contract is not configured in .env')
-      }
-
       setIsBuying(true)
       try {
+        if (isTreasuryPaymentMethod(paymentMethod)) {
+          return payViaTreasury({
+            account,
+            wallet,
+            walletChain,
+            switchChain,
+            paymentMethod,
+            treasuryNetworkKey,
+            amountHuman,
+          })
+        }
+
+        const presaleContract = getPresaleContract()
+        if (!presaleContract) {
+          throw new Error('Presale contract is not configured in .env')
+        }
+
         await ensureChain()
 
         const saleActive = await readContract({
@@ -160,60 +221,18 @@ export function usePresaleBuy() {
           throw new Error('Presale is not active right now.')
         }
 
-        if (paymentMethod === 'BNB') {
-          const tx = prepareContractCall({
-            contract: presaleContract,
-            method: 'function buyWithBnb()',
-            params: [],
-            value: toWei(String(amountHuman).trim()),
-          })
-          const receipt = await sendAndConfirmTransaction({ account, transaction: tx })
-          return {
-            transactionHash: receipt.transactionHash,
-            paymentMethod,
-            amountPaid: String(amountHuman).trim(),
-          }
-        }
-
-        const paymentToken = getPaymentTokenAddress(paymentMethod)
-        if (!paymentToken) {
-          throw new Error(
-            `${paymentMethod} payment token address is missing. Add VITE_PAYMENT_TOKEN_${paymentMethod} to .env`,
-          )
-        }
-
-        const paymentDecimals = await readPaymentTokenDecimals(presaleContract, paymentToken)
-        const amountWei = parseHumanAmount(amountHuman, paymentDecimals)
-        const tokenContract = getErc20Contract(paymentToken)
-        if (!tokenContract) {
-          throw new Error('Payment token contract is not configured.')
-        }
-
-        const allowance = await readContract({
-          contract: tokenContract,
-          method: 'function allowance(address owner, address spender) view returns (uint256)',
-          params: [account.address, presaleContract.address],
-        })
-
-        if (allowance < amountWei) {
-          const approveTx = prepareContractCall({
-            contract: tokenContract,
-            method: 'function approve(address spender, uint256 amount)',
-            params: [presaleContract.address, amountWei],
-          })
-          await sendAndConfirmTransaction({ account, transaction: approveTx })
-        }
-
-        const buyTx = prepareContractCall({
+        const tx = prepareContractCall({
           contract: presaleContract,
-          method: 'function buyWithToken(address paymentToken, uint256 amount)',
-          params: [paymentToken, amountWei],
+          method: 'function buyWithBnb()',
+          params: [],
+          value: toWei(String(amountHuman).trim()),
         })
-        const receipt = await sendAndConfirmTransaction({ account, transaction: buyTx })
+        const receipt = await sendAndConfirmTransaction({ account, transaction: tx })
         return {
           transactionHash: receipt.transactionHash,
           paymentMethod,
           amountPaid: String(amountHuman).trim(),
+          chainId: appChain.id,
         }
       } catch (error) {
         const message = formatBuyError(error)
@@ -223,7 +242,7 @@ export function usePresaleBuy() {
         setIsBuying(false)
       }
     },
-    [account, ensureChain],
+    [account, ensureChain, switchChain, wallet, walletChain],
   )
 
   return {

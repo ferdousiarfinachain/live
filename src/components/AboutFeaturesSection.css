@@ -813,12 +813,51 @@
 
 .presale-methods {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   align-items: stretch;
   width: 100%;
   min-width: 0;
   grid-auto-flow: row;
+}
+
+.presale-subtitle--chain {
+  margin-top: 14px;
+}
+
+.presale-chain-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.chain-box {
+  border: 1px solid rgba(138, 147, 156, 0.45);
+  border-radius: 10px;
+  background: linear-gradient(160deg, rgba(19, 38, 68, 0.92), rgba(13, 27, 49, 0.9));
+  color: #dfe9ff;
+  padding: 8px 12px;
+  min-height: 36px;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease;
+}
+
+.chain-box strong {
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
+.chain-box:hover {
+  transform: translateY(-1px);
+  border-color: rgb(0, 217, 255);
+}
+
+.chain-box.is-active {
+  border-color: #00cafd;
+  background: linear-gradient(160deg, rgb(0, 195, 255), rgb(35, 84, 107));
 }
 
 .method-box {
@@ -1209,7 +1248,7 @@
   }
 
   .presale-methods {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
   }
 
@@ -1300,7 +1339,7 @@
   }
 
   .presale-methods {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
   }
 
@@ -1501,7 +1540,7 @@
   }
 
   .presale-methods {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
   }
 

@@ -1,11 +1,35 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useActiveAccount, useActiveWalletChain, useSwitchActiveWalletChain } from 'thirdweb/react'
 import { appChain } from '../contracts/config.js'
+import { getTreasuryChain } from '../contracts/treasuryChains.js'
 
-function wrongNetworkError() {
+function wrongNetworkError(targetChain = appChain) {
   return new Error(
-    `Wrong network. Approve the switch to ${appChain.name || 'BSC Testnet'} (Chain ID ${appChain.id}) in your wallet.`,
+    `Wrong network. Approve the switch to ${targetChain.name || 'the required network'} (Chain ID ${targetChain.id}) in your wallet.`,
   )
+}
+
+export async function ensureTreasuryChain(networkKey, { wallet, walletChain, switchChain }) {
+  const targetChain = getTreasuryChain(networkKey)
+  if (!targetChain) {
+    throw new Error('Selected network is not configured.')
+  }
+  if (!wallet) {
+    throw new Error('Connect your wallet first.')
+  }
+  if (walletChain?.id === targetChain.id) {
+    return targetChain
+  }
+  try {
+    await switchChain(targetChain)
+  } catch {
+    throw wrongNetworkError(targetChain)
+  }
+  const activeChain = wallet.getChain?.()
+  if (activeChain?.id && activeChain.id !== targetChain.id) {
+    throw wrongNetworkError(targetChain)
+  }
+  return targetChain
 }
 
 export async function ensureAppChain({ wallet, walletChain, switchChain }) {
@@ -13,19 +37,21 @@ export async function ensureAppChain({ wallet, walletChain, switchChain }) {
     throw new Error('Connect your wallet first.')
   }
   if (walletChain?.id === appChain.id) {
-    return
+    return appChain
   }
   try {
     await switchChain(appChain)
   } catch {
-    throw wrongNetworkError()
+    throw wrongNetworkError(appChain)
   }
   const activeChain = wallet.getChain?.()
   if (activeChain?.id && activeChain.id !== appChain.id) {
-    throw wrongNetworkError()
+    throw wrongNetworkError(appChain)
   }
+  return appChain
 }
 
+/** @deprecated Prefer usePaymentChainSwitch in the presale panel. */
 export function useAutoSwitchChain(enabled = true) {
   const account = useActiveAccount()
   const walletChain = useActiveWalletChain()
@@ -82,7 +108,7 @@ export function useAutoSwitchChain(enabled = true) {
     }
   }, [account?.address, enabled, switchChain, walletChain?.id])
 
-  async function requestChainSwitch() {
+  const requestChainSwitch = useCallback(async () => {
     setSwitchRejected(false)
     inFlightRef.current = true
     setIsSwitchingChain(true)
@@ -91,12 +117,12 @@ export function useAutoSwitchChain(enabled = true) {
       setSwitchRejected(false)
     } catch {
       setSwitchRejected(true)
-      throw wrongNetworkError()
+      throw wrongNetworkError(appChain)
     } finally {
       inFlightRef.current = false
       setIsSwitchingChain(false)
     }
-  }
+  }, [switchChain])
 
   return {
     appChain,

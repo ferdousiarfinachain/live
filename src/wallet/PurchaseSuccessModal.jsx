@@ -2,29 +2,19 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Clock, Copy, ExternalLink } from 'lucide-react'
 import bnbLogo from 'cryptocurrency-icons/svg/color/bnb.svg'
+import ethLogo from 'cryptocurrency-icons/svg/color/eth.svg'
 import usdtLogo from 'cryptocurrency-icons/svg/color/usdt.svg'
 import usdcLogo from 'cryptocurrency-icons/svg/color/usdc.svg'
-import { chainId } from '../contracts/config.js'
+import { chainId, getExplorerTxUrl } from '../contracts/config.js'
 import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 import { MODAL_CLOSE_MS } from './ConnectWalletModal'
 import './PurchaseSuccessModal.css'
 
 const paymentLogos = {
   BNB: bnbLogo,
+  ETH: ethLogo,
   USDT: usdtLogo,
   USDC: usdcLogo,
-}
-
-function getExplorerTxUrl(hash) {
-  const txHash = String(hash ?? '').trim()
-  if (!txHash) return ''
-  if (chainId === 97) {
-    return `https://testnet.bscscan.com/tx/${txHash}`
-  }
-  if (chainId === 56) {
-    return `https://bscscan.com/tx/${txHash}`
-  }
-  return `https://etherscan.io/tx/${txHash}`
 }
 
 function shortHash(hash) {
@@ -41,12 +31,13 @@ export default function PurchaseSuccessModal({
   amountPaid = '',
   paymentMethod = 'BNB',
   transactionHash = '',
+  chainId: txChainId = chainId,
 }) {
   const [isClosing, setIsClosing] = useState(false)
   const [copied, setCopied] = useState(false)
   const closeTimerRef = useRef(null)
   const visible = isOpen || isClosing
-  const explorerUrl = getExplorerTxUrl(transactionHash)
+  const explorerUrl = getExplorerTxUrl(transactionHash, txChainId)
   const paymentLogo = paymentLogos[paymentMethod]
 
   useLayoutEffect(() => {

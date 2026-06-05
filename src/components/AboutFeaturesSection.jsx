@@ -1,10 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
+import {
+  getConfiguredTreasuryNetworks,
+  isTreasuryRouteConfigured,
+} from '../contracts/config.js'
+import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
 import { usePresaleBuy, usePresaleQuote } from '../wallet/usePresaleBuy'
 import { usePresaleClaim } from '../wallet/usePresaleClaim'
 import { usePresaleStats } from '../wallet/usePresaleStats'
 import { usePaymentBalance } from '../wallet/usePaymentBalance'
+import { usePaymentChainSwitch } from '../wallet/usePaymentChainSwitch'
+import { useTreasuryNetworkDetect } from '../wallet/useTreasuryNetworkDetect'
 import PurchaseSuccessModal from '../wallet/PurchaseSuccessModal'
 import ClaimSuccessModal from './ClaimSuccessModal'
 
@@ -13,11 +20,13 @@ const PRESALE_LISTING_PRICE_USD = 0.001
 const PRESALE_ACTUAL_PRICE_LABEL = '$0.0007'
 const PRESALE_LISTING_PRICE_LABEL = '$0.001'
 import bnbLogo from 'cryptocurrency-icons/svg/color/bnb.svg'
+import ethLogo from 'cryptocurrency-icons/svg/color/eth.svg'
 import usdtLogo from 'cryptocurrency-icons/svg/color/usdt.svg'
 import usdcLogo from 'cryptocurrency-icons/svg/color/usdc.svg'
 
 const paymentMethods = [
   { logo: bnbLogo, name: 'BNB' },
+  { logo: ethLogo, name: 'ETH' },
   { logo: usdtLogo, name: 'USDT' },
   { logo: usdcLogo, name: 'USDC' },
 ]
@@ -35,30 +44,80 @@ function AboutFeaturesSection({
   onProceedToPay,
 }) {
   const [selectedPayment, setSelectedPayment] = useState(paymentMethods[0].name)
+  const [selectedTreasuryNetwork, setSelectedTreasuryNetwork] = useState('')
+  const userPickedNetworkRef = useRef(false)
   const [payAmount, setPayAmount] = useState('')
   const [successPurchase, setSuccessPurchase] = useState(null)
   const [successClaim, setSuccessClaim] = useState(null)
   const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
   const presaleStats = usePresaleStats()
-  const { quotedReceive } = usePresaleQuote(selectedPayment, payAmount, isPresaleConfigured)
+  const treasurySelected = isTreasuryPaymentMethod(selectedPayment)
+  const configuredTreasuryNetworks = useMemo(
+    () => (treasurySelected ? getConfiguredTreasuryNetworks(selectedPayment) : []),
+    [selectedPayment, treasurySelected],
+  )
+
+  const { suggestedNetworkKey, isDetectingNetwork } = useTreasuryNetworkDetect(
+    selectedPayment,
+    isConnected && treasurySelected,
+  )
+
+  useEffect(() => {
+    userPickedNetworkRef.current = false
+  }, [selectedPayment])
+
+  useEffect(() => {
+    if (!treasurySelected) {
+      setSelectedTreasuryNetwork('')
+      return
+    }
+    const stillValid = configuredTreasuryNetworks.some(
+      (network) => network.key === selectedTreasuryNetwork,
+    )
+    if (!stillValid) {
+      setSelectedTreasuryNetwork(configuredTreasuryNetworks[0]?.key ?? '')
+    }
+  }, [configuredTreasuryNetworks, selectedTreasuryNetwork, treasurySelected])
+
+  useEffect(() => {
+    if (!treasurySelected || !suggestedNetworkKey || userPickedNetworkRef.current) {
+      return
+    }
+    const isSuggestedAvailable = configuredTreasuryNetworks.some(
+      (network) => network.key === suggestedNetworkKey,
+    )
+    if (isSuggestedAvailable) {
+      setSelectedTreasuryNetwork(suggestedNetworkKey)
+    }
+  }, [configuredTreasuryNetworks, suggestedNetworkKey, treasurySelected])
+
+  const paymentMethodReady = treasurySelected
+    ? isTreasuryRouteConfigured(selectedPayment, selectedTreasuryNetwork)
+    : isPresaleConfigured
+  const { quotedReceive } = usePresaleQuote(
+    selectedPayment,
+    payAmount,
+    paymentMethodReady,
+    selectedTreasuryNetwork,
+  )
   const { maxPayAmount, isLoadingMaxPay, refreshMaxPay } = usePaymentBalance(
     selectedPayment,
-    isConnected && isPresaleConfigured,
+    selectedTreasuryNetwork,
+    isConnected && paymentMethodReady,
   )
-  const receiveAmount = useMemo(() => {
-    if (quotedReceive) {
-      return quotedReceive
-    }
-    const amount = Number(payAmount)
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return ''
-    }
-    // Stablecoins only when on-chain quote is unavailable (e.g. token not in .env).
-    if (selectedPayment === 'USDT' || selectedPayment === 'USDC') {
-      return (amount / PRESALE_ACTUAL_PRICE_USD).toFixed(2)
-    }
-    return ''
-  }, [payAmount, quotedReceive, selectedPayment])
+  const receiveAmount = quotedReceive
+
+  const {
+    targetChain,
+    isWrongNetwork,
+    isSwitchingChain,
+    switchRejected,
+    requestChainSwitch,
+  } = usePaymentChainSwitch({
+    paymentMethod: selectedPayment,
+    treasuryNetworkKey: selectedTreasuryNetwork,
+    enabled: isConnected && paymentMethodReady,
+  })
 
   const raisedDisplay = presaleStats.isPresaleConfigured
     ? `${presaleStats.raisedLabel} / ${presaleStats.goalLabel}`
@@ -159,24 +218,37 @@ function AboutFeaturesSection({
       await onProceedToPay({ paymentMethod: selectedPayment, amount: payAmount })
       return
     }
-    if (!isPresaleConfigured) {
+    if (treasurySelected && !isTreasuryRouteConfigured(selectedPayment, selectedTreasuryNetwork)) {
+      window.alert(
+        `${selectedPayment} on the selected network is not configured. Check .env treasury settings.`,
+      )
+      return
+    }
+    if (!treasurySelected && !isPresaleConfigured) {
       window.alert('Presale contract is not configured. Set VITE_PRESALE_CONTRACT_ADDRESS in .env')
       return
     }
-    const tokensAtPurchase = receiveAmount
-    const amountAtPurchase = payAmount
-    const result = await buy({ paymentMethod: selectedPayment, amountHuman: payAmount })
-    if (result?.transactionHash) {
-      setSuccessPurchase({
-        tokenSymbol: claimTokenSymbol,
-        tokensPurchased: tokensAtPurchase,
-        amountPaid: amountAtPurchase,
-        paymentMethod: selectedPayment,
-        transactionHash: result.transactionHash,
-      })
-      setPayAmount('')
-      refreshMaxPay()
+    const result = await buy({
+      paymentMethod: selectedPayment,
+      amountHuman: payAmount,
+      treasuryNetworkKey: selectedTreasuryNetwork,
+    })
+    if (!result?.transactionHash) {
+      return
     }
+    if (treasurySelected && !result.dbRecorded) {
+      return
+    }
+    setSuccessPurchase({
+      tokenSymbol: claimTokenSymbol,
+      tokensPurchased: result.tokensEstimated || receiveAmount,
+      amountPaid: result.amountPaid || payAmount,
+      paymentMethod: selectedPayment,
+      transactionHash: result.transactionHash,
+      chainId: result.chainId,
+    })
+    setPayAmount('')
+    refreshMaxPay()
   }
 
   return (
@@ -271,7 +343,10 @@ function AboutFeaturesSection({
                 key={method.name}
                 type="button"
                 className={`method-box ${selectedPayment === method.name ? 'is-active' : ''}`}
-                onClick={() => setSelectedPayment(method.name)}
+                onClick={() => {
+                  setSelectedPayment(method.name)
+                  userPickedNetworkRef.current = false
+                }}
                 aria-pressed={selectedPayment === method.name}
               >
                 <span className="method-icon">
@@ -284,9 +359,36 @@ function AboutFeaturesSection({
             ))}
           </div>
 
+          {treasurySelected && configuredTreasuryNetworks.length > 0 ? (
+            <>
+              <h3 className="presale-subtitle presale-subtitle--chain">Select Network</h3>
+              <div className="presale-chain-picker">
+                {configuredTreasuryNetworks.map((network) => (
+                  <button
+                    key={network.key}
+                    type="button"
+                    className={`chain-box ${selectedTreasuryNetwork === network.key ? 'is-active' : ''}`}
+                    onClick={() => {
+                      userPickedNetworkRef.current = true
+                      setSelectedTreasuryNetwork(network.key)
+                    }}
+                    aria-pressed={selectedTreasuryNetwork === network.key}
+                  >
+                    <strong>{network.label}</strong>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+
           <div className="presale-inputs">
             <label className="presale-input-box">
-              <span>Pay with {selectedPayment}</span>
+              <span>
+                Pay with {selectedPayment}
+                {treasurySelected && selectedTreasuryNetwork
+                  ? ` on ${configuredTreasuryNetworks.find((n) => n.key === selectedTreasuryNetwork)?.label ?? ''}`
+                  : ''}
+              </span>
               <div className="presale-input-field">
                 <input
                   className="presale-input-native"
@@ -333,11 +435,38 @@ function AboutFeaturesSection({
             </label>
           </div>
 
+          {isConnected && isDetectingNetwork ? (
+            <p className="presale-stats-error" role="status">
+              Detecting wallet balance across networks…
+            </p>
+          ) : null}
+
+          {isConnected && isSwitchingChain && targetChain ? (
+            <p className="presale-stats-error" role="status">
+              Switching to {targetChain.name}… Approve in MetaMask if prompted.
+            </p>
+          ) : null}
+
+          {isConnected && switchRejected && isWrongNetwork && targetChain ? (
+            <p className="presale-buy-error" role="alert">
+              Wrong network. Approve the switch to {targetChain.name} in MetaMask to continue.{' '}
+              <button
+                type="button"
+                className="presale-referral-link"
+                onClick={() => {
+                  requestChainSwitch().catch(() => {})
+                }}
+              >
+                Switch network
+              </button>
+            </p>
+          ) : null}
+
           {isConnected ? (
             <button
               type="button"
               className="presale-connect-btn"
-              disabled={isBuying || !payAmount}
+              disabled={isBuying || !payAmount || isSwitchingChain || isDetectingNetwork}
               onClick={() => {
                 handleProceedToPay().catch(() => {})
               }}
@@ -480,6 +609,7 @@ function AboutFeaturesSection({
       amountPaid={successPurchase?.amountPaid}
       paymentMethod={successPurchase?.paymentMethod}
       transactionHash={successPurchase?.transactionHash}
+      chainId={successPurchase?.chainId}
     />
 
     <ClaimSuccessModal

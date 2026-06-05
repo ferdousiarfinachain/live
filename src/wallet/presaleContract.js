@@ -6,7 +6,6 @@ import erc20Abi from '../contracts/abis/erc20.json'
 import {
   appChain,
   isPresaleConfigured,
-  paymentTokenAddresses,
   presaleAbiExport,
   presaleContractAddress,
 } from '../contracts/config.js'
@@ -37,13 +36,13 @@ export function getPresaleContract() {
   })
 }
 
-export function getErc20Contract(tokenAddress) {
+export function getErc20Contract(tokenAddress, chain = appChain) {
   if (!thirdwebClient || !tokenAddress) {
     return null
   }
   return getContract({
     client: thirdwebClient,
-    chain: appChain,
+    chain,
     address: tokenAddress,
     abi: erc20Abi,
   })
@@ -53,7 +52,7 @@ export function getPaymentTokenAddress(paymentMethod) {
   if (paymentMethod === 'BNB') {
     return null
   }
-  return paymentTokenAddresses[paymentMethod] ?? null
+  return null
 }
 
 export async function readPaymentTokenDecimals(presaleContract, tokenAddress) {
@@ -181,14 +180,7 @@ export function prefetchQuoteMetadata() {
     return Promise.resolve()
   }
 
-  const tasks = [readSaleTokenDecimals(presaleContract)]
-  for (const method of ['USDT', 'USDC']) {
-    const tokenAddress = getPaymentTokenAddress(method)
-    if (tokenAddress) {
-      tasks.push(readPaymentTokenDecimals(presaleContract, tokenAddress))
-    }
-  }
-  return Promise.allSettled(tasks)
+  return Promise.allSettled([readSaleTokenDecimals(presaleContract)])
 }
 
 if (isPresaleConfigured) {
