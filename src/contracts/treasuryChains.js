@@ -108,6 +108,16 @@ export function getTreasuryChain(networkKey) {
   return getTreasuryNetwork(networkKey)?.chain ?? null
 }
 
+export function isTreasuryQuoteEnabled(paymentMethod, networkKey = '') {
+  if (!isTreasuryPaymentMethod(paymentMethod)) {
+    return false
+  }
+  if (paymentMethod === 'USDT' || paymentMethod === 'USDC') {
+    return true
+  }
+  return Boolean(getTreasuryNetwork(networkKey))
+}
+
 export function isTreasuryRouteConfigured(paymentMethod, networkKey) {
   if (!isTreasuryPaymentMethod(paymentMethod) || !isSupabaseConfigured || !treasuryAddress) {
     return false

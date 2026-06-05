@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
 import {
-  getConfiguredTreasuryNetworks,
+  getTreasuryNetworksForMethod,
+  isTreasuryQuoteEnabled,
   isTreasuryRouteConfigured,
 } from '../contracts/config.js'
 import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
@@ -52,8 +53,8 @@ function AboutFeaturesSection({
   const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
   const presaleStats = usePresaleStats()
   const treasurySelected = isTreasuryPaymentMethod(selectedPayment)
-  const configuredTreasuryNetworks = useMemo(
-    () => (treasurySelected ? getConfiguredTreasuryNetworks(selectedPayment) : []),
+  const treasuryNetworks = useMemo(
+    () => (treasurySelected ? getTreasuryNetworksForMethod(selectedPayment) : []),
     [selectedPayment, treasurySelected],
   )
 
@@ -71,33 +72,36 @@ function AboutFeaturesSection({
       setSelectedTreasuryNetwork('')
       return
     }
-    const stillValid = configuredTreasuryNetworks.some(
+    const stillValid = treasuryNetworks.some(
       (network) => network.key === selectedTreasuryNetwork,
     )
     if (!stillValid) {
-      setSelectedTreasuryNetwork(configuredTreasuryNetworks[0]?.key ?? '')
+      setSelectedTreasuryNetwork(treasuryNetworks[0]?.key ?? '')
     }
-  }, [configuredTreasuryNetworks, selectedTreasuryNetwork, treasurySelected])
+  }, [treasuryNetworks, selectedTreasuryNetwork, treasurySelected])
 
   useEffect(() => {
     if (!treasurySelected || !suggestedNetworkKey || userPickedNetworkRef.current) {
       return
     }
-    const isSuggestedAvailable = configuredTreasuryNetworks.some(
+    const isSuggestedAvailable = treasuryNetworks.some(
       (network) => network.key === suggestedNetworkKey,
     )
     if (isSuggestedAvailable) {
       setSelectedTreasuryNetwork(suggestedNetworkKey)
     }
-  }, [configuredTreasuryNetworks, suggestedNetworkKey, treasurySelected])
+  }, [treasuryNetworks, suggestedNetworkKey, treasurySelected])
 
   const paymentMethodReady = treasurySelected
     ? isTreasuryRouteConfigured(selectedPayment, selectedTreasuryNetwork)
     : isPresaleConfigured
+  const quoteEnabled = treasurySelected
+    ? isTreasuryQuoteEnabled(selectedPayment, selectedTreasuryNetwork)
+    : isPresaleConfigured
   const { quotedReceive } = usePresaleQuote(
     selectedPayment,
     payAmount,
-    paymentMethodReady,
+    quoteEnabled,
     selectedTreasuryNetwork,
   )
   const { maxPayAmount, isLoadingMaxPay, refreshMaxPay } = usePaymentBalance(
@@ -359,11 +363,11 @@ function AboutFeaturesSection({
             ))}
           </div>
 
-          {treasurySelected && configuredTreasuryNetworks.length > 0 ? (
+          {treasurySelected && treasuryNetworks.length > 0 ? (
             <>
               <h3 className="presale-subtitle presale-subtitle--chain">Select Network</h3>
               <div className="presale-chain-picker">
-                {configuredTreasuryNetworks.map((network) => (
+                {treasuryNetworks.map((network) => (
                   <button
                     key={network.key}
                     type="button"
@@ -386,7 +390,7 @@ function AboutFeaturesSection({
               <span>
                 Pay with {selectedPayment}
                 {treasurySelected && selectedTreasuryNetwork
-                  ? ` on ${configuredTreasuryNetworks.find((n) => n.key === selectedTreasuryNetwork)?.label ?? ''}`
+                  ? ` on ${treasuryNetworks.find((n) => n.key === selectedTreasuryNetwork)?.label ?? ''}`
                   : ''}
               </span>
               <div className="presale-input-field">

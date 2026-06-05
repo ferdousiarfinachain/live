@@ -2,7 +2,7 @@ import { eth_getBalance, getRpcClient, readContract } from 'thirdweb'
 import { toWei } from 'thirdweb/utils'
 import { appChain } from '../contracts/config.js'
 import {
-  getConfiguredTreasuryNetworks,
+  getTreasuryNetworksForMethod,
   getTreasuryChain,
   getTreasuryNetwork,
   getTreasuryTokenAddress,
@@ -85,7 +85,7 @@ export function findTreasuryNetworkByChainId(paymentMethod, chainId) {
     return null
   }
   return (
-    getConfiguredTreasuryNetworks(paymentMethod).find((network) => network.chainId === chainId) ??
+    getTreasuryNetworksForMethod(paymentMethod).find((network) => network.chainId === chainId) ??
     null
   )
 }
@@ -95,7 +95,7 @@ export async function detectBestTreasuryNetwork(accountAddress, paymentMethod, w
     return ''
   }
 
-  const networks = getConfiguredTreasuryNetworks(paymentMethod)
+  const networks = getTreasuryNetworksForMethod(paymentMethod)
   if (networks.length === 0) {
     return ''
   }
