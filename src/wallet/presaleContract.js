@@ -183,7 +183,9 @@ export function formatUsdTokenPriceLabel(priceUsd) {
     return ''
   }
   const digits = priceUsd < 0.01 ? 4 : 2
-  return `$${priceUsd.toFixed(digits)}`
+  const formatted =
+    digits === 4 ? String(Number(priceUsd.toFixed(digits))) : priceUsd.toFixed(digits)
+  return `$${formatted}`
 }
 
 export async function quoteReceiveAmount(paymentMethod, amountHuman) {
