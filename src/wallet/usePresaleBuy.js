@@ -11,6 +11,7 @@ import { ensureAppChain } from './useAutoSwitchChain.js'
 import {
   getPresaleContract,
   quoteReceiveAmount,
+  readPresaleTokenPriceUsd,
 } from './presaleContract.js'
 import { payViaTreasury } from './treasuryPayment.js'
 
@@ -94,28 +95,24 @@ export function usePresaleQuote(paymentMethod, payAmount, enabled = true, treasu
     }
 
     if (isTreasuryPaymentMethod(paymentMethod)) {
-      if (paymentMethod !== 'ETH') {
-        setQuotedReceive(estimateTokensFromTreasuryPayment(paymentMethod, amount))
-        setIsQuoting(false)
-        return undefined
-      }
-
-      if (!treasuryNetworkKey) {
-        setQuotedReceive('')
-        setIsQuoting(false)
-        return undefined
-      }
-
       let cancelled = false
       setIsQuoting(true)
 
-      fetchEthUsdPrice(treasuryNetworkKey)
-        .then((ethUsdPrice) => {
+      const ethPricePromise =
+        paymentMethod === 'ETH' && treasuryNetworkKey
+          ? fetchEthUsdPrice(treasuryNetworkKey)
+          : Promise.resolve(null)
+
+      Promise.all([ethPricePromise, readPresaleTokenPriceUsd()])
+        .then(([ethUsdPrice, tokenPriceUsd]) => {
           if (cancelled) {
             return
           }
           setQuotedReceive(
-            estimateTokensFromTreasuryPayment(paymentMethod, amount, { ethUsdPrice }),
+            estimateTokensFromTreasuryPayment(paymentMethod, amount, {
+              ethUsdPrice,
+              tokenPriceUsd,
+            }),
           )
         })
         .catch(() => {
@@ -180,6 +177,14 @@ export function usePresaleBuy() {
   const switchChain = useSwitchActiveWalletChain()
   const [isBuying, setIsBuying] = useState(false)
   const [buyError, setBuyError] = useState('')
+
+  useEffect(() => {
+    if (!buyError) {
+      return undefined
+    }
+    const timerId = window.setTimeout(() => setBuyError(''), 2000)
+    return () => window.clearTimeout(timerId)
+  }, [buyError])
 
   const ensureChain = useCallback(async () => {
     await ensureAppChain({ wallet, walletChain, switchChain })

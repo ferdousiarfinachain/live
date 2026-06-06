@@ -12,7 +12,7 @@ import { estimateTokensFromTreasuryPayment } from '../lib/presaleEstimate.js'
 import { recordTreasuryPayment } from '../lib/supabaseClient.js'
 import { ensureTreasuryChain } from './useAutoSwitchChain.js'
 import { thirdwebClient } from './thirdwebClient.js'
-import { getErc20Contract, parseHumanAmount } from './presaleContract.js'
+import { getErc20Contract, parseHumanAmount, readPresaleTokenPriceUsd } from './presaleContract.js'
 
 async function readErc20Decimals(tokenAddress, chain) {
   const tokenContract = getErc20Contract(tokenAddress, chain)
@@ -90,10 +90,16 @@ export async function payViaTreasury({
 
   assertConfirmedReceipt(receipt)
 
-  let novexAmount = estimateTokensFromTreasuryPayment(paymentMethod, amount)
-  if (paymentMethod === 'ETH') {
-    const ethUsdPrice = await fetchEthUsdPrice(treasuryNetworkKey)
-    novexAmount = estimateTokensFromTreasuryPayment(paymentMethod, amount, { ethUsdPrice })
+  const [ethUsdPrice, tokenPriceUsd] = await Promise.all([
+    paymentMethod === 'ETH' ? fetchEthUsdPrice(treasuryNetworkKey) : Promise.resolve(null),
+    readPresaleTokenPriceUsd(),
+  ])
+  const novexAmount = estimateTokensFromTreasuryPayment(paymentMethod, amount, {
+    ethUsdPrice,
+    tokenPriceUsd,
+  })
+  if (!novexAmount) {
+    throw new Error('Could not calculate token amount from contract price.')
   }
 
   const dbResult = await recordTreasuryPayment({

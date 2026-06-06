@@ -1,23 +1,20 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import { readContract } from 'thirdweb'
 import { chainId, isPresaleConfigured, presaleContractAddress } from '../contracts/config.js'
-import { formatTokenAmount, getPresaleContract, readSaleTokenDecimals } from './presaleContract.js'
+import {
+  formatTokenAmount,
+  formatUsdTokenPriceLabel,
+  getPresaleContract,
+  readPresaleTokenPriceUsd,
+  readSaleTokenDecimals,
+} from './presaleContract.js'
 
 const REFRESH_MS = 15_000
-const DISPLAY_ACTUAL_PRICE_USD = 0.0007
+const PRESALE_USD_GOAL = 1_000_000
 
 const CACHE_KEY = `presale-stats:${chainId}:${presaleContractAddress || 'none'}`
 const listeners = new Set()
 let inflightPromise = null
-
-function envUsdGoal() {
-  const raw = (import.meta.env.VITE_PRESALE_USD_GOAL ?? '1000000')
-    .toString()
-    .replace(/,/g, '')
-    .trim()
-  const n = Number(raw)
-  return Number.isFinite(n) && n > 0 ? n : 1_000_000
-}
 
 function formatCompactUsd(value) {
   if (!Number.isFinite(value) || value < 0) {
@@ -44,7 +41,7 @@ function resolveSaleStatus({ isSaleActive, startTime, endTime, nowSec }) {
 }
 
 function createFallbackStats() {
-  const usdGoal = envUsdGoal()
+  const usdGoal = PRESALE_USD_GOAL
   return {
     loading: isPresaleConfigured,
     error: '',
@@ -58,6 +55,8 @@ function createFallbackStats() {
     currentStage: 0,
     isSaleActive: false,
     fromContract: false,
+    tokenPriceUsd: null,
+    tokenPriceLabel: '',
   }
 }
 
@@ -97,6 +96,8 @@ function writeCachedStats(stats) {
         countdownTarget: stats.countdownTarget,
         currentStage: stats.currentStage,
         isSaleActive: stats.isSaleActive,
+        tokenPriceUsd: stats.tokenPriceUsd,
+        tokenPriceLabel: stats.tokenPriceLabel,
       }),
     )
   } catch {
@@ -128,7 +129,7 @@ function setStatsSnapshot(next) {
 }
 
 async function fetchPresaleStats() {
-  const usdGoal = envUsdGoal()
+  const usdGoal = PRESALE_USD_GOAL
 
   if (!isPresaleConfigured) {
     const next = { ...createFallbackStats(), loading: false }
@@ -149,7 +150,7 @@ async function fetchPresaleStats() {
 
   try {
     const nowSec = Math.floor(Date.now() / 1000)
-    const [isSaleActive, currentStage, startTime, endTime, totalTokensSold, saleTokenDecimals] =
+    const [isSaleActive, currentStage, startTime, endTime, totalTokensSold, saleTokenDecimals, tokenPriceUsd] =
       await Promise.all([
         readContract({
           contract: presaleContract,
@@ -172,13 +173,15 @@ async function fetchPresaleStats() {
           method: 'function totalTokensSold() view returns (uint256)',
         }),
         readSaleTokenDecimals(presaleContract),
+        readPresaleTokenPriceUsd(),
       ])
 
     const stageNum = Number(currentStage)
     const tokensSold = Number(formatTokenAmount(totalTokensSold, saleTokenDecimals))
+    const priceUsd = Number(tokenPriceUsd)
     const raisedUsd =
-      Number.isFinite(tokensSold) && tokensSold > 0
-        ? Math.max(0, tokensSold * DISPLAY_ACTUAL_PRICE_USD)
+      Number.isFinite(tokensSold) && tokensSold > 0 && Number.isFinite(priceUsd) && priceUsd > 0
+        ? Math.max(0, tokensSold * priceUsd)
         : 0
     const progressPercent = Math.min(100, (raisedUsd / usdGoal) * 100)
     const startSec = Number(startTime)
@@ -210,6 +213,8 @@ async function fetchPresaleStats() {
       currentStage: stageNum,
       isSaleActive,
       fromContract: true,
+      tokenPriceUsd: Number.isFinite(priceUsd) && priceUsd > 0 ? priceUsd : null,
+      tokenPriceLabel: formatUsdTokenPriceLabel(priceUsd),
     }
     setStatsSnapshot(next)
     return next

@@ -8,3 +8,14 @@ export function isTreasuryPaymentMethod(paymentMethod) {
 export function isContractPaymentMethod(paymentMethod) {
   return CONTRACT_PAYMENT_METHODS.includes(paymentMethod)
 }
+
+export function getTreasuryQuoteNetworkKey(paymentMethod, treasuryNetworkKey = '') {
+  if (paymentMethod === 'ETH') {
+    return treasuryNetworkKey || 'ethereum'
+  }
+  return treasuryNetworkKey
+}
+
+export function isTreasuryQuoteEnabled(paymentMethod) {
+  return isTreasuryPaymentMethod(paymentMethod)
+}

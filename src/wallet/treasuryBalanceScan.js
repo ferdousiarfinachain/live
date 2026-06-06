@@ -2,7 +2,7 @@ import { eth_getBalance, getRpcClient, readContract } from 'thirdweb'
 import { toWei } from 'thirdweb/utils'
 import { appChain } from '../contracts/config.js'
 import {
-  getTreasuryNetworksForMethod,
+  getConfiguredTreasuryNetworks,
   getTreasuryChain,
   getTreasuryNetwork,
   getTreasuryTokenAddress,
@@ -11,17 +11,8 @@ import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
 import { formatTokenAmount, getErc20Contract } from './presaleContract.js'
 import { thirdwebClient } from './thirdwebClient.js'
 
-const BNB_GAS_RESERVE = (() => {
-  const raw = (import.meta.env.VITE_BNB_GAS_RESERVE ?? '0.001').toString().trim()
-  const n = Number(raw)
-  return Number.isFinite(n) && n >= 0 ? raw : '0.001'
-})()
-
-const ETH_GAS_RESERVE = (() => {
-  const raw = (import.meta.env.VITE_ETH_GAS_RESERVE ?? '0.002').toString().trim()
-  const n = Number(raw)
-  return Number.isFinite(n) && n >= 0 ? raw : '0.002'
-})()
+const BNB_GAS_RESERVE = '0.001'
+const ETH_GAS_RESERVE = '0.002'
 
 function spendableNativeBalance(balanceWei, reserveHuman) {
   const reserveWei = toWei(reserveHuman)
@@ -85,7 +76,7 @@ export function findTreasuryNetworkByChainId(paymentMethod, chainId) {
     return null
   }
   return (
-    getTreasuryNetworksForMethod(paymentMethod).find((network) => network.chainId === chainId) ??
+    getConfiguredTreasuryNetworks(paymentMethod).find((network) => network.chainId === chainId) ??
     null
   )
 }
@@ -95,7 +86,7 @@ export async function detectBestTreasuryNetwork(accountAddress, paymentMethod, w
     return ''
   }
 
-  const networks = getTreasuryNetworksForMethod(paymentMethod)
+  const networks = getConfiguredTreasuryNetworks(paymentMethod)
   if (networks.length === 0) {
     return ''
   }

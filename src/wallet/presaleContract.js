@@ -15,6 +15,13 @@ let cachedSaleDecimals = null
 let cachedSaleDecimalsKey = ''
 const paymentDecimalsCache = new Map()
 
+const USD_PRICE_DECIMALS = 8
+
+let cachedTokenPriceUsd = null
+let cachedTokenPriceKey = ''
+let cachedTokenPriceExpiresAt = 0
+const TOKEN_PRICE_CACHE_MS = 30_000
+
 function formatQuotedDisplay(tokenAmountWei, saleTokenDecimals) {
   const formatted = formatUnits(tokenAmountWei, saleTokenDecimals)
   const n = Number(formatted)
@@ -131,6 +138,52 @@ export function parseHumanAmount(amountHuman, decimals) {
 
 export function formatTokenAmount(amountWei, decimals) {
   return formatUnits(amountWei, decimals)
+}
+
+export async function readPresaleTokenPriceUsd() {
+  const presaleContract = getPresaleContract()
+  if (!presaleContract) {
+    return null
+  }
+
+  const cacheKey = `${presaleContract.chain.id}:${presaleContract.address}`
+  if (
+    cachedTokenPriceKey === cacheKey &&
+    cachedTokenPriceUsd !== null &&
+    cachedTokenPriceExpiresAt > Date.now()
+  ) {
+    return cachedTokenPriceUsd
+  }
+
+  try {
+    const stage = await readContract({
+      contract: presaleContract,
+      method: 'function currentStage() view returns (uint8)',
+    })
+    const priceRaw = await readContract({
+      contract: presaleContract,
+      method: 'function usdPricePerTokenByStage(uint256) view returns (uint256)',
+      params: [BigInt(stage)],
+    })
+    const priceUsd = Number(formatUnits(priceRaw, USD_PRICE_DECIMALS))
+    if (!Number.isFinite(priceUsd) || priceUsd <= 0) {
+      return null
+    }
+    cachedTokenPriceKey = cacheKey
+    cachedTokenPriceUsd = priceUsd
+    cachedTokenPriceExpiresAt = Date.now() + TOKEN_PRICE_CACHE_MS
+    return priceUsd
+  } catch {
+    return null
+  }
+}
+
+export function formatUsdTokenPriceLabel(priceUsd) {
+  if (!Number.isFinite(priceUsd) || priceUsd <= 0) {
+    return ''
+  }
+  const digits = priceUsd < 0.01 ? 4 : 2
+  return `$${priceUsd.toFixed(digits)}`
 }
 
 export async function quoteReceiveAmount(paymentMethod, amountHuman) {

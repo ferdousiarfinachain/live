@@ -1,10 +1,17 @@
-const PRESALE_TOKEN_PRICE_USD = (() => {
-  const raw = (import.meta.env.VITE_PRESALE_TOKEN_PRICE_USD ?? '0.0007').toString().trim()
-  const n = Number(raw)
-  return Number.isFinite(n) && n > 0 ? n : 0.0007
-})()
+export function estimateTokensFromUsdValue(usdValue, tokenPriceUsd) {
+  const usd = Number(usdValue)
+  const price = Number(tokenPriceUsd)
+  if (!Number.isFinite(usd) || usd <= 0 || !Number.isFinite(price) || price <= 0) {
+    return ''
+  }
+  return (usd / price).toFixed(2)
+}
 
-export function estimateTokensFromTreasuryPayment(paymentMethod, amountHuman, { ethUsdPrice = null } = {}) {
+export function estimateTokensFromTreasuryPayment(
+  paymentMethod,
+  amountHuman,
+  { ethUsdPrice = null, tokenPriceUsd = null } = {},
+) {
   const amount = Number(String(amountHuman ?? '').trim())
   if (!Number.isFinite(amount) || amount <= 0) {
     return ''
@@ -12,12 +19,12 @@ export function estimateTokensFromTreasuryPayment(paymentMethod, amountHuman, { 
 
   let usdValue = amount
   if (paymentMethod === 'ETH') {
-    const price = Number(ethUsdPrice)
-    if (!Number.isFinite(price) || price <= 0) {
+    const ethPrice = Number(ethUsdPrice)
+    if (!Number.isFinite(ethPrice) || ethPrice <= 0) {
       return ''
     }
-    usdValue = amount * price
+    usdValue = amount * ethPrice
   }
 
-  return (usdValue / PRESALE_TOKEN_PRICE_USD).toFixed(2)
+  return estimateTokensFromUsdValue(usdValue, tokenPriceUsd)
 }
