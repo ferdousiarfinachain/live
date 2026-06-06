@@ -9,6 +9,18 @@ import { prefetchQuoteMetadata } from './wallet/presaleContract.js'
 prefetchPresaleStats()
 prefetchQuoteMetadata()
 
+if (typeof document !== 'undefined') {
+  const markFontsReady = () => {
+    document.documentElement.classList.add('fonts-ready')
+  }
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(markFontsReady).catch(markFontsReady)
+  } else {
+    markFontsReady()
+  }
+  window.setTimeout(markFontsReady, 3_000)
+}
+
 if (typeof window !== 'undefined') {
   try {
     window.history.scrollRestoration = 'manual'

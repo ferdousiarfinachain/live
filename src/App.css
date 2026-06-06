@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700;800&display=swap');
-
 :root {
   --bg: #1f3f8f;
   --bg-soft: #132c68;
@@ -1162,12 +1160,15 @@ html.scroll-locked {
   text-decoration: none;
   /* Deeper than --orange for contrast on dark header */
   color: #ff5e00;
-  font-family: 'Press Start 2P', 'Orbitron', monospace;
+  font-family: 'Press Start 2P', monospace;
   font-size: 22px;
+  line-height: 1.35;
+  min-height: 2.35rem;
   display: inline-flex;
   align-items: center;
   gap: 10px;
   white-space: nowrap;
+  flex-shrink: 0;
 
   transition: color 0.2s ease, text-shadow 0.2s ease, transform 0.2s ease;
 }
@@ -1264,7 +1265,10 @@ html.scroll-locked {
 .nav-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
+  min-width: 17.5rem;
+  flex-shrink: 0;
 }
 
 .nav-actions .cta-btn {
@@ -1283,7 +1287,7 @@ html.scroll-locked {
   background: linear-gradient(180deg, #fa7901 0%, #f06400 78%, #df5600 100%);
   color: #ffffff;
   /* font-family: 'press start 2p', Arial, Helvetica, sans-serif; */
-  font-family: 'Orbitron', sans-serif;
+  font-family: Orbitron, Inter, Arial, sans-serif;
   font-size: 19px;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -1291,6 +1295,7 @@ html.scroll-locked {
   align-items: center;
   justify-content: center;
   min-height: 44px;
+  min-width: 8.75rem;
   padding: 11px 34px;
   cursor: pointer;
   box-shadow:

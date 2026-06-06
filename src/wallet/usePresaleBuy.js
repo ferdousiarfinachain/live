@@ -9,6 +9,7 @@ import { fetchEthUsdPrice } from '../lib/chainlinkEthPrice.js'
 import { estimateTokensFromTreasuryPayment } from '../lib/presaleEstimate.js'
 import { ensureAppChain } from './useAutoSwitchChain.js'
 import {
+  getCachedPresaleTokenPriceUsd,
   getPresaleContract,
   quoteReceiveAmount,
   readPresaleTokenPriceUsd,
@@ -74,11 +75,23 @@ function formatBuyError(error) {
   return 'Purchase failed. Please try again.'
 }
 
+function isInstantStableQuote(paymentMethod) {
+  return paymentMethod === 'USDT' || paymentMethod === 'USDC'
+}
+
 export function usePresaleQuote(paymentMethod, payAmount, enabled = true, treasuryNetworkKey = '') {
   const [quotedReceive, setQuotedReceive] = useState('')
   const [isQuoting, setIsQuoting] = useState(false)
   const prevMethodRef = useRef(paymentMethod)
   const prevAmountRef = useRef(payAmount)
+
+  useEffect(() => {
+    if (!enabled || !isPresaleConfigured || !isInstantStableQuote(paymentMethod)) {
+      return undefined
+    }
+    readPresaleTokenPriceUsd().catch(() => {})
+    return undefined
+  }, [enabled, paymentMethod])
 
   useEffect(() => {
     if (!enabled) {
@@ -96,7 +109,20 @@ export function usePresaleQuote(paymentMethod, payAmount, enabled = true, treasu
 
     if (isTreasuryPaymentMethod(paymentMethod)) {
       let cancelled = false
-      setIsQuoting(true)
+      const cachedTokenPrice = getCachedPresaleTokenPriceUsd()
+      const hasInstantStableQuote = isInstantStableQuote(paymentMethod) && cachedTokenPrice
+
+      if (hasInstantStableQuote) {
+        const instantQuote = estimateTokensFromTreasuryPayment(paymentMethod, amount, {
+          tokenPriceUsd: cachedTokenPrice,
+        })
+        if (instantQuote) {
+          setQuotedReceive(instantQuote)
+        }
+        setIsQuoting(false)
+      } else {
+        setIsQuoting(true)
+      }
 
       const ethPricePromise =
         paymentMethod === 'ETH' && treasuryNetworkKey
@@ -116,7 +142,7 @@ export function usePresaleQuote(paymentMethod, payAmount, enabled = true, treasu
           )
         })
         .catch(() => {
-          if (!cancelled) {
+          if (!cancelled && !hasInstantStableQuote) {
             setQuotedReceive('')
           }
         })

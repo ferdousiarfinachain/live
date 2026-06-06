@@ -6,13 +6,34 @@ import {
   getTreasuryChain,
   getTreasuryNetwork,
   getTreasuryTokenAddress,
+  isTreasuryMethodConfigured,
 } from '../contracts/treasuryChains.js'
-import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
+import { isTreasuryPaymentMethod, TREASURY_PAYMENT_METHODS } from '../lib/paymentMethods.js'
 import { formatTokenAmount, getErc20Contract } from './presaleContract.js'
 import { thirdwebClient } from './thirdwebClient.js'
 
-const BNB_GAS_RESERVE = '0.001'
-const ETH_GAS_RESERVE = '0.002'
+const BNB_GAS_RESERVE = '0.00005'
+const ETH_GAS_RESERVE_BY_NETWORK = {
+  ethereum: '0.00001',
+  arbitrum: '0.0002',
+  base: '0.0002',
+  optimism: '0.0002',
+}
+const BALANCE_FETCH_TIMEOUT_MS = 2_500
+const BALANCE_CACHE_TTL_MS = 12_000
+const BSC_STABLECOIN_DECIMALS = 18
+const bestTreasuryBalanceInFlight = new Map()
+const spendableBalanceCache = new Map()
+const spendableBalanceInFlight = new Map()
+
+function withTimeout(promise, timeoutMs = BALANCE_FETCH_TIMEOUT_MS) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error('Balance fetch timed out')), timeoutMs)
+    }),
+  ])
+}
 
 function spendableNativeBalance(balanceWei, reserveHuman) {
   const reserveWei = toWei(reserveHuman)
@@ -22,96 +43,330 @@ function spendableNativeBalance(balanceWei, reserveHuman) {
   return Number.isFinite(n) && n > 0 ? n : 0
 }
 
-export async function getSpendableTreasuryBalance(accountAddress, paymentMethod, networkKey) {
+function ethGasReserveForNetwork(networkKey) {
+  return ETH_GAS_RESERVE_BY_NETWORK[networkKey] ?? '0.0002'
+}
+
+function spendableCacheKey(accountAddress, paymentMethod, networkKey) {
+  return `${accountAddress.toLowerCase()}|${paymentMethod}|${networkKey}`
+}
+
+function readSpendableCache(cacheKey) {
+  const entry = spendableBalanceCache.get(cacheKey)
+  if (!entry) {
+    return null
+  }
+  if (Date.now() - entry.at > BALANCE_CACHE_TTL_MS) {
+    spendableBalanceCache.delete(cacheKey)
+    return null
+  }
+  return entry.value
+}
+
+function writeSpendableCache(cacheKey, value) {
+  spendableBalanceCache.set(cacheKey, { value, at: Date.now() })
+}
+
+async function readErc20BalanceViaRpc(rpcUrl, tokenAddress, accountAddress) {
+  const data = `0x70a08231${accountAddress.slice(2).toLowerCase().padStart(64, '0')}`
+  const response = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'eth_call',
+      params: [{ to: tokenAddress, data }, 'latest'],
+    }),
+  })
+  const payload = await response.json()
+  if (!payload?.result) {
+    throw new Error('eth_call failed')
+  }
+  return BigInt(payload.result)
+}
+
+async function readTokenDecimals(tokenContract, networkKey) {
+  if (networkKey === 'bsc') {
+    return BSC_STABLECOIN_DECIMALS
+  }
+  return Number(
+    await withTimeout(
+      readContract({
+        contract: tokenContract,
+        method: 'function decimals() view returns (uint8)',
+      }),
+    ),
+  )
+}
+
+async function fetchSpendableTreasuryBalance(accountAddress, paymentMethod, networkKey) {
   if (!accountAddress || !thirdwebClient || !networkKey) {
     return 0
   }
 
-  if (paymentMethod === 'ETH') {
-    const chain = getTreasuryChain(networkKey)
-    if (!chain) {
+  try {
+    if (paymentMethod === 'ETH') {
+      const chain = getTreasuryChain(networkKey)
+      if (!chain) {
+        return 0
+      }
+      const rpc = getRpcClient({ client: thirdwebClient, chain })
+      const balanceWei = await withTimeout(eth_getBalance(rpc, { address: accountAddress }))
+      return spendableNativeBalance(balanceWei, ethGasReserveForNetwork(networkKey))
+    }
+
+    const network = getTreasuryNetwork(networkKey)
+    const tokenAddress = network ? getTreasuryTokenAddress(paymentMethod, network.chainId) : null
+    if (!tokenAddress) {
       return 0
     }
-    const rpc = getRpcClient({ client: thirdwebClient, chain })
-    const balanceWei = await eth_getBalance(rpc, { address: accountAddress })
-    return spendableNativeBalance(balanceWei, ETH_GAS_RESERVE)
-  }
 
-  const network = getTreasuryNetwork(networkKey)
-  const chain = getTreasuryChain(networkKey)
-  const tokenAddress = network ? getTreasuryTokenAddress(paymentMethod, network.chainId) : null
-  const tokenContract = getErc20Contract(tokenAddress, chain)
-  if (!tokenAddress || !tokenContract) {
+    if (networkKey === 'bsc') {
+      const balanceWei = await withTimeout(
+        readErc20BalanceViaRpc(appChain.rpc, tokenAddress, accountAddress),
+      )
+      const formatted = formatTokenAmount(balanceWei, BSC_STABLECOIN_DECIMALS)
+      const n = Number(formatted)
+      return Number.isFinite(n) && n > 0 ? n : 0
+    }
+
+    const chain =
+      network?.chainId === appChain.id ? appChain : getTreasuryChain(networkKey)
+    const tokenContract = getErc20Contract(tokenAddress, chain)
+    if (!tokenContract) {
+      return 0
+    }
+
+    const [decimals, balanceWei] = await Promise.all([
+      readTokenDecimals(tokenContract, networkKey),
+      withTimeout(
+        readContract({
+          contract: tokenContract,
+          method: 'function balanceOf(address) view returns (uint256)',
+          params: [accountAddress],
+        }),
+      ),
+    ])
+
+    const formatted = formatTokenAmount(balanceWei, decimals)
+    const n = Number(formatted)
+    return Number.isFinite(n) && n > 0 ? n : 0
+  } catch {
     return 0
   }
-
-  const [balanceWei, decimals] = await Promise.all([
-    readContract({
-      contract: tokenContract,
-      method: 'function balanceOf(address) view returns (uint256)',
-      params: [accountAddress],
-    }),
-    readContract({
-      contract: tokenContract,
-      method: 'function decimals() view returns (uint8)',
-    }),
-  ])
-
-  const formatted = formatTokenAmount(balanceWei, Number(decimals))
-  const n = Number(formatted)
-  return Number.isFinite(n) && n > 0 ? n : 0
 }
 
-export async function getSpendableBnbBalance(accountAddress) {
+export async function getSpendableTreasuryBalance(accountAddress, paymentMethod, networkKey) {
+  const cacheKey = spendableCacheKey(accountAddress, paymentMethod, networkKey)
+  const cached = readSpendableCache(cacheKey)
+  if (cached !== null) {
+    return cached
+  }
+
+  const pending = spendableBalanceInFlight.get(cacheKey)
+  if (pending) {
+    return pending
+  }
+
+  const request = fetchSpendableTreasuryBalance(accountAddress, paymentMethod, networkKey)
+  spendableBalanceInFlight.set(cacheKey, request)
+  try {
+    const value = await request
+    writeSpendableCache(cacheKey, value)
+    return value
+  } finally {
+    spendableBalanceInFlight.delete(cacheKey)
+  }
+}
+
+async function fetchSpendableBnbBalance(accountAddress) {
   if (!accountAddress || !thirdwebClient) {
     return 0
   }
   const rpc = getRpcClient({ client: thirdwebClient, chain: appChain })
-  const balanceWei = await eth_getBalance(rpc, { address: accountAddress })
+  const balanceWei = await withTimeout(eth_getBalance(rpc, { address: accountAddress }))
   return spendableNativeBalance(balanceWei, BNB_GAS_RESERVE)
 }
 
+export async function getSpendableBnbBalance(accountAddress) {
+  const cacheKey = spendableCacheKey(accountAddress, 'BNB', 'bsc')
+  const cached = readSpendableCache(cacheKey)
+  if (cached !== null) {
+    return cached
+  }
+
+  const pending = spendableBalanceInFlight.get(cacheKey)
+  if (pending) {
+    return pending
+  }
+
+  const request = fetchSpendableBnbBalance(accountAddress)
+  spendableBalanceInFlight.set(cacheKey, request)
+  try {
+    const value = await request
+    writeSpendableCache(cacheKey, value)
+    return value
+  } finally {
+    spendableBalanceInFlight.delete(cacheKey)
+  }
+}
+
+export function getCachedSpendableBalance(accountAddress, paymentMethod, walletChainId) {
+  if (!accountAddress) {
+    return null
+  }
+  if (paymentMethod === 'BNB') {
+    return readSpendableCache(spendableCacheKey(accountAddress, 'BNB', 'bsc'))
+  }
+  if (!isTreasuryPaymentMethod(paymentMethod)) {
+    return null
+  }
+  if (Number(walletChainId) === appChain.id) {
+    return readSpendableCache(spendableCacheKey(accountAddress, paymentMethod, 'bsc'))
+  }
+  return null
+}
+
+export async function warmPaymentBalanceCache(accountAddress, walletChainId) {
+  if (!accountAddress || !thirdwebClient) {
+    return
+  }
+
+  const tasks = [getSpendableBnbBalance(accountAddress)]
+  const useBscOnly =
+    !Number.isFinite(Number(walletChainId)) ||
+    Number(walletChainId) <= 0 ||
+    Number(walletChainId) === appChain.id
+
+  for (const paymentMethod of TREASURY_PAYMENT_METHODS) {
+    if (!isTreasuryMethodConfigured(paymentMethod)) {
+      continue
+    }
+    if (useBscOnly) {
+      tasks.push(getSpendableTreasuryBalance(accountAddress, paymentMethod, 'bsc'))
+      continue
+    }
+    tasks.push(getBestTreasuryBalance(accountAddress, paymentMethod, walletChainId))
+  }
+
+  await Promise.allSettled(tasks)
+}
+
 export function findTreasuryNetworkByChainId(paymentMethod, chainId) {
-  if (!chainId) {
+  const normalizedChainId = Number(chainId)
+  if (!Number.isFinite(normalizedChainId) || normalizedChainId <= 0) {
     return null
   }
   return (
-    getConfiguredTreasuryNetworks(paymentMethod).find((network) => network.chainId === chainId) ??
-    null
+    getConfiguredTreasuryNetworks(paymentMethod).find(
+      (network) => Number(network.chainId) === normalizedChainId,
+    ) ?? null
   )
 }
 
-export async function detectBestTreasuryNetwork(accountAddress, paymentMethod, walletChainId) {
-  if (!isTreasuryPaymentMethod(paymentMethod) || !accountAddress) {
-    return ''
-  }
-
-  const networks = getConfiguredTreasuryNetworks(paymentMethod)
-  if (networks.length === 0) {
-    return ''
-  }
-
-  const balances = await Promise.all(
+async function scanTreasuryBalances(accountAddress, paymentMethod, networks) {
+  const balanceResults = await Promise.allSettled(
     networks.map(async (network) => ({
       networkKey: network.key,
-      chainId: network.chainId,
-      label: network.label,
       balance: await getSpendableTreasuryBalance(accountAddress, paymentMethod, network.key),
     })),
   )
 
-  const walletNetwork = findTreasuryNetworkByChainId(paymentMethod, walletChainId)
+  return balanceResults.map((result, index) => {
+    if (result.status === 'fulfilled') {
+      return result.value
+    }
+    return { networkKey: networks[index].key, balance: 0 }
+  })
+}
+
+function pickBestBalance(balances, walletNetwork) {
   if (walletNetwork) {
     const walletBalance = balances.find((item) => item.networkKey === walletNetwork.key)
     if (walletBalance && walletBalance.balance > 0) {
-      return walletNetwork.key
+      return walletBalance
     }
   }
 
   const sorted = [...balances].sort((a, b) => b.balance - a.balance)
   if (sorted[0]?.balance > 0) {
-    return sorted[0].networkKey
+    return sorted[0]
   }
 
-  return networks[0]?.key ?? ''
+  return null
+}
+
+export async function detectBestTreasuryNetwork(accountAddress, paymentMethod, walletChainId) {
+  const { networkKey } = await getBestTreasuryBalance(
+    accountAddress,
+    paymentMethod,
+    walletChainId,
+  )
+  return networkKey
+}
+
+async function resolveBestTreasuryBalance(accountAddress, paymentMethod, walletChainId) {
+  const networks = getConfiguredTreasuryNetworks(paymentMethod)
+  if (networks.length === 0) {
+    return { networkKey: '', balance: 0 }
+  }
+
+  const walletNetwork = findTreasuryNetworkByChainId(paymentMethod, walletChainId)
+  if (walletNetwork) {
+    const walletBalance = await getSpendableTreasuryBalance(
+      accountAddress,
+      paymentMethod,
+      walletNetwork.key,
+    )
+    if (walletBalance > 0) {
+      return { networkKey: walletNetwork.key, balance: walletBalance }
+    }
+    if (Number(walletChainId) === appChain.id) {
+      return { networkKey: walletNetwork.key, balance: 0 }
+    }
+  }
+
+  const walletChainKnown =
+    Number.isFinite(Number(walletChainId)) && Number(walletChainId) > 0
+  if (!walletChainKnown) {
+    const appNetwork = findTreasuryNetworkByChainId(paymentMethod, appChain.id)
+    if (appNetwork) {
+      const balance = await getSpendableTreasuryBalance(
+        accountAddress,
+        paymentMethod,
+        appNetwork.key,
+      )
+      return { networkKey: appNetwork.key, balance }
+    }
+    return { networkKey: networks[0]?.key ?? '', balance: 0 }
+  }
+
+  const balances = await scanTreasuryBalances(accountAddress, paymentMethod, networks)
+  const best = pickBestBalance(balances, walletNetwork)
+  if (best) {
+    return { networkKey: best.networkKey, balance: best.balance }
+  }
+
+  return { networkKey: networks[0]?.key ?? '', balance: 0 }
+}
+
+export async function getBestTreasuryBalance(accountAddress, paymentMethod, walletChainId) {
+  if (!isTreasuryPaymentMethod(paymentMethod) || !accountAddress) {
+    return { networkKey: '', balance: 0 }
+  }
+
+  const cacheKey = `${accountAddress}|${paymentMethod}|${walletChainId ?? ''}`
+  const pending = bestTreasuryBalanceInFlight.get(cacheKey)
+  if (pending) {
+    return pending
+  }
+
+  const request = resolveBestTreasuryBalance(accountAddress, paymentMethod, walletChainId)
+  bestTreasuryBalanceInFlight.set(cacheKey, request)
+  try {
+    return await request
+  } finally {
+    bestTreasuryBalanceInFlight.delete(cacheKey)
+  }
 }

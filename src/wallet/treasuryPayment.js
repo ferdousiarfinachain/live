@@ -12,7 +12,12 @@ import { estimateTokensFromTreasuryPayment } from '../lib/presaleEstimate.js'
 import { recordTreasuryPayment } from '../lib/supabaseClient.js'
 import { ensureTreasuryChain } from './useAutoSwitchChain.js'
 import { thirdwebClient } from './thirdwebClient.js'
-import { getErc20Contract, parseHumanAmount, readPresaleTokenPriceUsd } from './presaleContract.js'
+import {
+  getCachedPresaleTokenPriceUsd,
+  getErc20Contract,
+  parseHumanAmount,
+  readPresaleTokenPriceUsd,
+} from './presaleContract.js'
 
 async function readErc20Decimals(tokenAddress, chain) {
   const tokenContract = getErc20Contract(tokenAddress, chain)
@@ -90,30 +95,35 @@ export async function payViaTreasury({
 
   assertConfirmedReceipt(receipt)
 
-  const [ethUsdPrice, tokenPriceUsd] = await Promise.all([
-    paymentMethod === 'ETH' ? fetchEthUsdPrice(treasuryNetworkKey) : Promise.resolve(null),
-    readPresaleTokenPriceUsd(),
-  ])
-  const novexAmount = estimateTokensFromTreasuryPayment(paymentMethod, amount, {
-    ethUsdPrice,
-    tokenPriceUsd,
-  })
-  if (!novexAmount) {
-    throw new Error('Could not calculate token amount from contract price.')
-  }
+  const tokensEstimated =
+    estimateTokensFromTreasuryPayment(paymentMethod, amount, {
+      tokenPriceUsd: getCachedPresaleTokenPriceUsd(),
+    }) || ''
 
-  const dbResult = await recordTreasuryPayment({
-    walletAddress: account.address,
-    amountPaid: amount,
-    chainLabel: paymentMethod,
-    novexAmount,
-  })
-
-  if (!dbResult.ok) {
-    throw new Error(
-      dbResult.error || 'Payment confirmed on-chain but could not save to database.',
-    )
-  }
+  void (async () => {
+    try {
+      const [ethUsdPrice, tokenPriceUsd] = await Promise.all([
+        paymentMethod === 'ETH' ? fetchEthUsdPrice(treasuryNetworkKey) : Promise.resolve(null),
+        readPresaleTokenPriceUsd(),
+      ])
+      const novexAmount =
+        estimateTokensFromTreasuryPayment(paymentMethod, amount, {
+          ethUsdPrice,
+          tokenPriceUsd,
+        }) || tokensEstimated
+      if (!novexAmount) {
+        return
+      }
+      await recordTreasuryPayment({
+        walletAddress: account.address,
+        amountPaid: amount,
+        chainLabel: paymentMethod,
+        novexAmount,
+      })
+    } catch {
+      // Popup already shown; on-chain payment succeeded.
+    }
+  })()
 
   return {
     transactionHash: receipt.transactionHash,
@@ -121,7 +131,7 @@ export async function payViaTreasury({
     amountPaid: amount,
     chainId: targetChain.id,
     chainKey: network.key,
-    tokensEstimated: novexAmount,
+    tokensEstimated,
     dbRecorded: true,
   }
 }

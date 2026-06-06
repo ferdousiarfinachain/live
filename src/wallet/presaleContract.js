@@ -140,7 +140,7 @@ export function formatTokenAmount(amountWei, decimals) {
   return formatUnits(amountWei, decimals)
 }
 
-export async function readPresaleTokenPriceUsd() {
+export function getCachedPresaleTokenPriceUsd() {
   const presaleContract = getPresaleContract()
   if (!presaleContract) {
     return null
@@ -154,6 +154,22 @@ export async function readPresaleTokenPriceUsd() {
   ) {
     return cachedTokenPriceUsd
   }
+
+  return null
+}
+
+export async function readPresaleTokenPriceUsd() {
+  const presaleContract = getPresaleContract()
+  if (!presaleContract) {
+    return null
+  }
+
+  const cachedPrice = getCachedPresaleTokenPriceUsd()
+  if (cachedPrice !== null) {
+    return cachedPrice
+  }
+
+  const cacheKey = `${presaleContract.chain.id}:${presaleContract.address}`
 
   try {
     const stage = await readContract({

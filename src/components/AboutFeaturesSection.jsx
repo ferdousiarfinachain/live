@@ -57,6 +57,8 @@ const heroHighlights = [
 
 function AboutFeaturesSection({
   isConnected = false,
+  presaleWalletConnected = false,
+  showNoWalletLink = true,
   onConnectWallet,
   onNoWallet,
   onProceedToPay,
@@ -78,6 +80,10 @@ function AboutFeaturesSection({
     selectedPayment,
     isConnected && treasurySelected,
   )
+
+  useEffect(() => {
+    setPayAmount('')
+  }, [selectedPayment])
 
   useEffect(() => {
     if (!treasurySelected) {
@@ -122,10 +128,11 @@ function AboutFeaturesSection({
     quoteEnabled,
     quoteTreasuryNetwork,
   )
-  const { maxPayAmount, isLoadingMaxPay, refreshMaxPay } = usePaymentBalance(
+  const { maxPayAmount, isLoadingMaxPay, refreshMaxPay, fetchMaxPayAmount } = usePaymentBalance(
     selectedPayment,
     selectedTreasuryNetwork,
-    isConnected && paymentMethodReady,
+    isConnected &&
+      (treasurySelected ? configuredTreasuryNetworks.length > 0 : paymentMethodReady),
   )
   const receiveAmount = quotedReceive
 
@@ -205,13 +212,19 @@ function AboutFeaturesSection({
     }
   }
 
-  function applyMaxPay() {
+  async function applyMaxPay() {
     if (!isConnected) {
       onConnectWallet?.()
       return
     }
-    if (!hasValidMax) return
-    setPayAmount(maxPayRaw)
+    if (hasValidMax) {
+      setPayAmount(maxPayRaw)
+      return
+    }
+    const amount = await fetchMaxPayAmount()
+    if (amount) {
+      setPayAmount(amount)
+    }
   }
 
   async function handleProceedToPay() {
@@ -370,7 +383,6 @@ function AboutFeaturesSection({
                   type="button"
                   className="presale-max-btn"
                   onClick={applyMaxPay}
-                  disabled={isConnected && (isLoadingMaxPay || !hasValidMax)}
                   title={
                     !isConnected
                       ? 'Connect wallet to use your balance'
@@ -401,7 +413,7 @@ function AboutFeaturesSection({
             </label>
           </div>
 
-          {isConnected ? (
+          {presaleWalletConnected ? (
             <button
               type="button"
               className="presale-connect-btn"
@@ -424,7 +436,7 @@ function AboutFeaturesSection({
             </p>
           ) : null}
 
-          {!isConnected ? (
+          {showNoWalletLink ? (
             <a
               href="#"
               className="presale-referral-link"
@@ -522,7 +534,7 @@ function AboutFeaturesSection({
                 Buy on PancakeSwap
               </a>
             </div>
-            {!isConnected ? (
+            {showNoWalletLink ? (
               <a
                 href="#"
                 className="presale-referral-link claim-panel-referral"

@@ -37,7 +37,7 @@ export default function PurchaseSuccessModal({
   const [copied, setCopied] = useState(false)
   const closeTimerRef = useRef(null)
   const visible = isOpen || isClosing
-  const explorerUrl = getExplorerTxUrl(transactionHash, txChainId)
+  const explorerUrl = getExplorerTxUrl(txChainId, transactionHash)
   const paymentLogo = paymentLogos[paymentMethod]
 
   useLayoutEffect(() => {

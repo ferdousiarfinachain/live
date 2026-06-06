@@ -142,7 +142,13 @@ function App() {
   const [guideModalOpen, setGuideModalOpen] = useState(false)
   const [guideModalClosing, setGuideModalClosing] = useState(false)
   const guideHandoffTimerRef = useRef(null)
-  const { isConnected, shortAddress, handleDisconnect } = useWalletSession()
+  const {
+    isConnected,
+    presaleWalletConnected,
+    showNoWalletLink,
+    headerShortAddress,
+    handleDisconnect,
+  } = useWalletSession()
 
   useEffect(() => {
     if (!guideModalOpen) return undefined
@@ -198,10 +204,14 @@ function App() {
             ))}
 
             <li className="mobile-nav-tools">
-              {isConnected ? (
+              {presaleWalletConnected ? (
                 <>
-                  <button className="cta-btn mobile-buy-btn" type="button" aria-label={`Connected wallet ${shortAddress}`}>
-                    {shortAddress}
+                  <button
+                    className="cta-btn mobile-buy-btn"
+                    type="button"
+                    aria-label={`Connected wallet ${headerShortAddress}`}
+                  >
+                    {headerShortAddress}
                   </button>
                   <button
                     className="cta-btn mobile-buy-btn"
@@ -224,10 +234,14 @@ function App() {
           </ul>
 
           <div className="nav-actions">
-            {isConnected ? (
+            {presaleWalletConnected ? (
               <>
-                <button className="cta-btn" type="button" aria-label={`Connected wallet ${shortAddress}`}>
-                  {shortAddress}
+                <button
+                  className="cta-btn"
+                  type="button"
+                  aria-label={`Connected wallet ${headerShortAddress}`}
+                >
+                  {headerShortAddress}
                 </button>
                 <button
                   className="cta-btn"
@@ -262,6 +276,8 @@ function App() {
         <section id="home" className="section-anchor">
           <AboutFeaturesSection
             isConnected={isConnected}
+            presaleWalletConnected={presaleWalletConnected}
+            showNoWalletLink={showNoWalletLink}
             onConnectWallet={() => setConnectModalOpen(true)}
             onNoWallet={() => setGuideModalOpen(true)}
           />
