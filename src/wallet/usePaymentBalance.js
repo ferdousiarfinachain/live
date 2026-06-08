@@ -24,7 +24,12 @@ function formatSpendableBalance(amount, paymentMethod) {
     return ''
   }
   const precision = paymentMethodPrecision(paymentMethod)
-  return String(Number(amount.toFixed(precision)))
+  const factor = 10 ** precision
+  const floored = Math.floor(amount * factor) / factor
+  if (floored <= 0) {
+    return ''
+  }
+  return String(floored)
 }
 
 export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enabled = true) {
@@ -55,6 +60,7 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
       account.address,
       paymentMethod,
       walletChain?.id,
+      treasuryNetworkKey,
     )
     if (cachedBalance !== null) {
       return formatSpendableBalance(cachedBalance, paymentMethod)
@@ -63,6 +69,14 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
     try {
       if (paymentMethod === 'BNB') {
         const balance = await getSpendableBnbBalance(account.address)
+        return formatSpendableBalance(balance, paymentMethod)
+      }
+      if (treasuryMethod && treasuryNetworkKey) {
+        const balance = await getSpendableTreasuryBalance(
+          account.address,
+          paymentMethod,
+          treasuryNetworkKey,
+        )
         return formatSpendableBalance(balance, paymentMethod)
       }
       if (treasuryMethod && Number(walletChain?.id) === appChain.id) {
@@ -86,7 +100,7 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
     }
 
     return ''
-  }, [account?.address, paymentMethod, walletChain?.id])
+  }, [account?.address, paymentMethod, treasuryNetworkKey, walletChain?.id])
 
   useEffect(() => {
     if (!enabled || !account?.address || !thirdwebClient) {
@@ -110,8 +124,19 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
     }
 
     let cancelled = false
-    setMaxPayAmount('')
-    setIsLoadingMaxPay(true)
+    const initialCachedBalance = getCachedSpendableBalance(
+      account.address,
+      paymentMethod,
+      walletChain?.id,
+      treasuryNetworkKey,
+    )
+    if (initialCachedBalance !== null) {
+      setMaxPayAmount(formatSpendableBalance(initialCachedBalance, paymentMethod))
+      setIsLoadingMaxPay(false)
+    } else {
+      setMaxPayAmount('')
+      setIsLoadingMaxPay(true)
+    }
 
     async function loadMaxPay() {
       try {
@@ -121,11 +146,19 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
           account.address,
           paymentMethod,
           walletChain?.id,
+          treasuryNetworkKey,
         )
         if (cachedBalance !== null) {
           nextMax = formatSpendableBalance(cachedBalance, paymentMethod)
         } else if (paymentMethod === 'BNB') {
           const balance = await getSpendableBnbBalance(account.address)
+          nextMax = formatSpendableBalance(balance, paymentMethod)
+        } else if (treasuryMethod && treasuryNetworkKey) {
+          const balance = await getSpendableTreasuryBalance(
+            account.address,
+            paymentMethod,
+            treasuryNetworkKey,
+          )
           nextMax = formatSpendableBalance(balance, paymentMethod)
         } else if (treasuryMethod && Number(walletChain?.id) === appChain.id) {
           const balance = await getSpendableTreasuryBalance(

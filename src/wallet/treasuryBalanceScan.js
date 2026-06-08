@@ -216,7 +216,26 @@ export async function getSpendableBnbBalance(accountAddress) {
   }
 }
 
-export function getCachedSpendableBalance(accountAddress, paymentMethod, walletChainId) {
+function getBestCachedSpendableBalance(accountAddress, paymentMethod) {
+  const networks = getConfiguredTreasuryNetworks(paymentMethod)
+  let bestBalance = null
+  for (const network of networks) {
+    const cached = readSpendableCache(
+      spendableCacheKey(accountAddress, paymentMethod, network.key),
+    )
+    if (cached !== null && (bestBalance === null || cached > bestBalance)) {
+      bestBalance = cached
+    }
+  }
+  return bestBalance
+}
+
+export function getCachedSpendableBalance(
+  accountAddress,
+  paymentMethod,
+  walletChainId,
+  treasuryNetworkKey = '',
+) {
   if (!accountAddress) {
     return null
   }
@@ -226,10 +245,15 @@ export function getCachedSpendableBalance(accountAddress, paymentMethod, walletC
   if (!isTreasuryPaymentMethod(paymentMethod)) {
     return null
   }
+  if (treasuryNetworkKey) {
+    return readSpendableCache(
+      spendableCacheKey(accountAddress, paymentMethod, treasuryNetworkKey),
+    )
+  }
   if (Number(walletChainId) === appChain.id) {
     return readSpendableCache(spendableCacheKey(accountAddress, paymentMethod, 'bsc'))
   }
-  return null
+  return getBestCachedSpendableBalance(accountAddress, paymentMethod)
 }
 
 export async function warmPaymentBalanceCache(accountAddress, walletChainId) {

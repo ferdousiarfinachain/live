@@ -86,6 +86,12 @@ function AboutFeaturesSection({
   }, [selectedPayment])
 
   useEffect(() => {
+    if (treasurySelected) {
+      setPayAmount('')
+    }
+  }, [selectedTreasuryNetwork, treasurySelected])
+
+  useEffect(() => {
     if (!treasurySelected) {
       setSelectedTreasuryNetwork('')
       return
