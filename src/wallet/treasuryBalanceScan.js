@@ -250,9 +250,6 @@ export function getCachedSpendableBalance(
       spendableCacheKey(accountAddress, paymentMethod, treasuryNetworkKey),
     )
   }
-  if (Number(walletChainId) === appChain.id) {
-    return readSpendableCache(spendableCacheKey(accountAddress, paymentMethod, 'bsc'))
-  }
   return getBestCachedSpendableBalance(accountAddress, paymentMethod)
 }
 
@@ -262,17 +259,9 @@ export async function warmPaymentBalanceCache(accountAddress, walletChainId) {
   }
 
   const tasks = [getSpendableBnbBalance(accountAddress)]
-  const useBscOnly =
-    !Number.isFinite(Number(walletChainId)) ||
-    Number(walletChainId) <= 0 ||
-    Number(walletChainId) === appChain.id
 
   for (const paymentMethod of TREASURY_PAYMENT_METHODS) {
     if (!isTreasuryMethodConfigured(paymentMethod)) {
-      continue
-    }
-    if (useBscOnly) {
-      tasks.push(getSpendableTreasuryBalance(accountAddress, paymentMethod, 'bsc'))
       continue
     }
     tasks.push(getBestTreasuryBalance(accountAddress, paymentMethod, walletChainId))
@@ -347,30 +336,6 @@ async function resolveBestTreasuryBalance(accountAddress, paymentMethod, walletC
   }
 
   const walletNetwork = findTreasuryNetworkByChainId(paymentMethod, walletChainId)
-  if (walletNetwork && Number(walletChainId) === appChain.id) {
-    const walletBalance = await getSpendableTreasuryBalance(
-      accountAddress,
-      paymentMethod,
-      walletNetwork.key,
-    )
-    return { networkKey: walletNetwork.key, balance: walletBalance }
-  }
-
-  const walletChainKnown =
-    Number.isFinite(Number(walletChainId)) && Number(walletChainId) > 0
-  if (!walletChainKnown) {
-    const appNetwork = findTreasuryNetworkByChainId(paymentMethod, appChain.id)
-    if (appNetwork) {
-      const balance = await getSpendableTreasuryBalance(
-        accountAddress,
-        paymentMethod,
-        appNetwork.key,
-      )
-      return { networkKey: appNetwork.key, balance }
-    }
-    return { networkKey: networks[0]?.key ?? '', balance: 0 }
-  }
-
   const balances = await scanTreasuryBalances(accountAddress, paymentMethod, networks)
   const best = pickBestBalance(balances, walletNetwork)
   if (best) {

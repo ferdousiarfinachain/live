@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useActiveAccount, useActiveWalletChain } from 'thirdweb/react'
-import { appChain, isPresaleConfigured } from '../contracts/config.js'
+import { isPresaleConfigured } from '../contracts/config.js'
 import { isTreasuryMethodConfigured } from '../contracts/treasuryChains.js'
 import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
 import {
@@ -79,14 +79,6 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
         )
         return formatSpendableBalance(balance, paymentMethod)
       }
-      if (treasuryMethod && Number(walletChain?.id) === appChain.id) {
-        const balance = await getSpendableTreasuryBalance(
-          account.address,
-          paymentMethod,
-          'bsc',
-        )
-        return formatSpendableBalance(balance, paymentMethod)
-      }
       if (treasuryMethod) {
         const { balance } = await getBestTreasuryBalance(
           account.address,
@@ -158,13 +150,6 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
             account.address,
             paymentMethod,
             treasuryNetworkKey,
-          )
-          nextMax = formatSpendableBalance(balance, paymentMethod)
-        } else if (treasuryMethod && Number(walletChain?.id) === appChain.id) {
-          const balance = await getSpendableTreasuryBalance(
-            account.address,
-            paymentMethod,
-            'bsc',
           )
           nextMax = formatSpendableBalance(balance, paymentMethod)
         } else if (treasuryMethod) {
