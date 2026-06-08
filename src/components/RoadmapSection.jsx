@@ -1,47 +1,51 @@
 const roadmapPhases = [
   {
-    title: 'Foundation',
-    period: 'Phase 1',
-    tone: 'launch',
+    title: 'Phase 1 — Foundation',
+    period: '',
+    tone: 'ecosystem',
     active: true,
     points: [
-      'Project vision and strategy finalized',
-      'Smart contract development and testing',
+      'Smart contract architecture',
+      'Security testing and deployment',
       'Website launch',
-      'Core community building',
+      'Community establishment',
+      'Multi-chain payment integration',
     ],
   },
   {
-    title: 'Presale and Awareness',
-    period: 'Phase 2',
+    title: 'Phase 2 — Presale Launch',
+    period: '',
     tone: 'ecosystem',
     points: [
-      'Public presale launch',
-      'Marketing campaigns and influencer partnerships',
-      'Community growth (Telegram, Twitter)',
-      'Early investor onboarding',
+      'Public presale activation',
+      'Marketing expansion',
+      'Strategic partnerships',
+      'Community growth campaigns',
+      'Cross-chain onboarding',
     ],
   },
   {
-    title: 'Launch and Market Entry',
-    period: 'Phase 3',
+    title: 'Phase 3 — Market Launch',
+    period: '',
     tone: 'growth',
     points: [
-      'Token listing (DEX)',
-      'Liquidity pool setup and lock',
-      'Listings on price tracking platforms',
-      'Active trading and market exposure',
+      'DEX listing',
+      'Liquidity deployment',
+      'Token claim activation',
+      'Market tracking integrations',
+      'Ecosystem expansion',
     ],
   },
   {
-    title: 'Growth and Expansion',
-    period: 'Phase 4',
+    title: 'Phase 4 — Ecosystem Growth',
+    period: '',
     tone: 'ecosystem',
     points: [
-      'Utility and platform development',
-      'Strategic partnerships',
-      'Ecosystem expansion',
-      'Future CEX listings and scaling',
+      'Utility development',
+      'Additional partnerships',
+      'Advanced platform features',
+      'Global community expansion',
+      'Future exchange opportunities',
     ],
   },
 ]
@@ -76,7 +80,9 @@ function RoadmapSection({ id = 'roadmap' }) {
                   <div className="timeline-card__head">
                     <div>
                       <h3>{phase.title}</h3>
-                      <p className="timeline-card__period">{phase.period}</p>
+                      {phase.period ? (
+                        <p className="timeline-card__period">{phase.period}</p>
+                      ) : null}
                     </div>
                   </div>
                   <ul>

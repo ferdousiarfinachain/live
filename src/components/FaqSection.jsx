@@ -8,29 +8,32 @@ const faqItems = [
       'Novex is the native token ecosystem focused on community presales, transparent allocations, and on-chain claims when enabled.',
   },
   {
-    question: 'How do I join the $NOVEX presale?',
+    question: 'What payment methods are supported?',
+    answer: 'You can participate using BNB, ETH, USDT, or USDC.',
+  },
+  {
+    question: 'Which blockchain networks are supported?',
     answer:
-      'Connect your wallet through the official presale widget on this site and follow the on-screen steps. Never send funds to unofficial addresses.',
+      'BNB Smart Chain, Ethereum, Arbitrum, Base, Optimism, Polygon, and Avalanche.',
+  },
+  {
+    question: 'Do I need to manually select a network?',
+    answer:
+      'No. The Novex app automatically detects supported balances and presents the best available payment options.',
+  },
+  {
+    question: 'Where are presale contributions settled?',
+    answer:
+      'All contributions are securely processed into the Novex ecosystem on BNB Smart Chain.',
   },
   {
     question: 'Which wallets are supported?',
-    answer:
-      'Common EVM wallets such as MetaMask, Rabby, and similar—always verify you are on the correct network.',
-  },
-  {
-    question: 'Where can I get updates?',
-    answer:
-      'Follow official links from this website only. Staff will never DM you first or ask for your seed phrase.',
+    answer: 'MetaMask, Rabby, Trust Wallet, and most EVM-compatible wallets.',
   },
   {
     question: 'When can I claim my $NOVEX tokens?',
     answer:
-      'Claim timing follows the published presale schedule—typically after a stage ends or at TGE. Always use the claim flow on this official site and verify contract addresses before signing transactions.',
-  },
-  {
-    question: 'Is staking available and how does it work?',
-    answer:
-      'If staking is offered, details including APY and lock periods will be announced here and in the staking UI. APY can change over time; review risks and only interact with contracts linked from this domain.',
+      'Token claims become available according to the official vesting and token generation event schedule.',
   },
 ]
 

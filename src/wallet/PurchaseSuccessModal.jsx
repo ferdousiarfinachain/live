@@ -106,15 +106,6 @@ export default function PurchaseSuccessModal({
         aria-label="Purchase successful"
         onClick={(event) => event.stopPropagation()}
       >
-        <button
-          type="button"
-          className="purchase-success-close"
-          onClick={beginClose}
-          aria-label="Close purchase success modal"
-        >
-          ×
-        </button>
-
         <div className="purchase-success-hero" aria-hidden="true">
           <span className="purchase-success-confetti purchase-success-confetti--a" />
           <span className="purchase-success-confetti purchase-success-confetti--b" />

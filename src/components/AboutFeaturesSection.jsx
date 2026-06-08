@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
 import {
@@ -50,9 +50,18 @@ const paymentMethods = [
 ]
 
 const heroHighlights = [
-  { title: 'Audited Contract', copy: 'Security-first launch with transparent checks.' },
-  { title: 'Instant Claim', copy: 'Claim tokens fast after each presale stage.' },
-  { title: 'Global Community', copy: '24/7 active holders and trading momentum.' },
+  {
+    title: 'Multi-Chain Support',
+    copy: 'Pay with BNB, ETH, USDT, or USDC on 7 popular networks.',
+  },
+  {
+    title: 'Instant Participation',
+    copy: 'Connect your wallet and start buying in seconds.',
+  },
+  {
+    title: 'Secure Infrastructure',
+    copy: 'Powered by BNB Chain smart contracts with on-chain verification.',
+  },
 ]
 
 function AboutFeaturesSection({
@@ -66,6 +75,9 @@ function AboutFeaturesSection({
   const [selectedPayment, setSelectedPayment] = useState(paymentMethods[0].name)
   const [selectedTreasuryNetwork, setSelectedTreasuryNetwork] = useState('')
   const [payAmount, setPayAmount] = useState('')
+  const [amountWarning, setAmountWarning] = useState('')
+  const [isPayConfirming, setIsPayConfirming] = useState(false)
+  const amountWarningTimerRef = useRef(null)
   const [successPurchase, setSuccessPurchase] = useState(null)
   const [successClaim, setSuccessClaim] = useState(null)
   const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
@@ -76,14 +88,23 @@ function AboutFeaturesSection({
     [selectedPayment, treasurySelected],
   )
 
-  const { suggestedNetworkKey, isDetectingNetwork } = useTreasuryNetworkDetect(
+  const { suggestedNetworkKey } = useTreasuryNetworkDetect(
     selectedPayment,
     isConnected && treasurySelected,
   )
 
   useEffect(() => {
     setPayAmount('')
+    setAmountWarning('')
   }, [selectedPayment])
+
+  useEffect(() => {
+    return () => {
+      if (amountWarningTimerRef.current) {
+        window.clearTimeout(amountWarningTimerRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (treasurySelected) {
@@ -142,7 +163,7 @@ function AboutFeaturesSection({
   )
   const receiveAmount = quotedReceive
 
-  const { isSwitchingChain } = usePaymentChainSwitch({
+  usePaymentChainSwitch({
     paymentMethod: selectedPayment,
     treasuryNetworkKey: selectedTreasuryNetwork,
     enabled: isConnected && paymentMethodReady,
@@ -155,6 +176,7 @@ function AboutFeaturesSection({
   const maxPayNum = Number(maxPayRaw)
   const hasValidMax =
     maxPayRaw !== '' && Number.isFinite(maxPayNum) && maxPayNum > 0
+  const showWalletConfirm = isBuying || isPayConfirming
 
   const panelMode = (import.meta.env.VITE_APP_PANEL_MODE || 'buy').toString().trim().toLowerCase()
   const isClaimMode = panelMode === 'claim'
@@ -211,10 +233,30 @@ function AboutFeaturesSection({
     .toString()
     .trim()
 
+  function isValidPayAmount(amount) {
+    const raw = String(amount ?? '').trim()
+    const n = Number(raw)
+    return raw !== '' && Number.isFinite(n) && n > 0
+  }
+
+  function showAmountWarning() {
+    setAmountWarning('Enter a Valid Amount')
+    if (amountWarningTimerRef.current) {
+      window.clearTimeout(amountWarningTimerRef.current)
+    }
+    amountWarningTimerRef.current = window.setTimeout(() => {
+      setAmountWarning('')
+      amountWarningTimerRef.current = null
+    }, 2500)
+  }
+
   function handlePayAmountChange(event) {
     const next = event.target.value
     if (next === '' || /^\d*\.?\d*$/.test(next)) {
       setPayAmount(next)
+      if (amountWarning) {
+        setAmountWarning('')
+      }
     }
   }
 
@@ -234,8 +276,17 @@ function AboutFeaturesSection({
   }
 
   async function handleProceedToPay() {
+    if (!isValidPayAmount(payAmount)) {
+      showAmountWarning()
+      return
+    }
     if (onProceedToPay) {
-      await onProceedToPay({ paymentMethod: selectedPayment, amount: payAmount })
+      setIsPayConfirming(true)
+      try {
+        await onProceedToPay({ paymentMethod: selectedPayment, amount: payAmount })
+      } finally {
+        setIsPayConfirming(false)
+      }
       return
     }
     if (treasurySelected && !isTreasuryRouteConfigured(selectedPayment, selectedTreasuryNetwork)) {
@@ -248,27 +299,32 @@ function AboutFeaturesSection({
       window.alert('Presale contract is not configured. Set VITE_PRESALE_CONTRACT_ADDRESS in .env')
       return
     }
-    const result = await buy({
-      paymentMethod: selectedPayment,
-      amountHuman: payAmount,
-      treasuryNetworkKey: selectedTreasuryNetwork,
-    })
-    if (!result?.transactionHash) {
-      return
+    setIsPayConfirming(true)
+    try {
+      const result = await buy({
+        paymentMethod: selectedPayment,
+        amountHuman: payAmount,
+        treasuryNetworkKey: selectedTreasuryNetwork,
+      })
+      if (!result?.transactionHash) {
+        return
+      }
+      if (treasurySelected && !result.dbRecorded) {
+        return
+      }
+      setSuccessPurchase({
+        tokenSymbol: claimTokenSymbol,
+        tokensPurchased: result.tokensEstimated || receiveAmount,
+        amountPaid: result.amountPaid || payAmount,
+        paymentMethod: selectedPayment,
+        transactionHash: result.transactionHash,
+        chainId: result.chainId,
+      })
+      setPayAmount('')
+      refreshMaxPay()
+    } finally {
+      setIsPayConfirming(false)
     }
-    if (treasurySelected && !result.dbRecorded) {
-      return
-    }
-    setSuccessPurchase({
-      tokenSymbol: claimTokenSymbol,
-      tokensPurchased: result.tokensEstimated || receiveAmount,
-      amountPaid: result.amountPaid || payAmount,
-      paymentMethod: selectedPayment,
-      transactionHash: result.transactionHash,
-      chainId: result.chainId,
-    })
-    setPayAmount('')
-    refreshMaxPay()
   }
 
   return (
@@ -280,8 +336,8 @@ function AboutFeaturesSection({
             Welcome to <em>Novex</em>
           </h2>
           <p className="hero-copy">
-            Novex pairs transparent presale mechanics with secure claims and community-first
-            tokenomics—crafted by Novex Labs for holders who value clarity and control.
+            Seamless cross-chain participation with a transparent and secure presale experience.
+            Contribute using BNB, ETH, USDT, or USDC across multiple networks.
           </p>
 
           <a
@@ -420,16 +476,23 @@ function AboutFeaturesSection({
           </div>
 
           {presaleWalletConnected ? (
-            <button
-              type="button"
-              className="presale-connect-btn"
-              disabled={isBuying || !payAmount || isSwitchingChain || isDetectingNetwork}
-              onClick={() => {
-                handleProceedToPay().catch(() => {})
-              }}
-            >
-              {isBuying ? 'CONFIRM IN WALLET…' : 'PROCEED TO PAY'}
-            </button>
+            <>
+              <button
+                type="button"
+                className="presale-connect-btn"
+                disabled={showWalletConfirm}
+                onClick={() => {
+                  handleProceedToPay().catch(() => {})
+                }}
+              >
+                {showWalletConfirm ? 'CONFIRM IN WALLET…' : 'PROCEED TO PAY'}
+              </button>
+              {amountWarning ? (
+                <p className="presale-amount-warning" role="alert">
+                  {amountWarning}
+                </p>
+              ) : null}
+            </>
           ) : (
             <button type="button" className="presale-connect-btn" onClick={onConnectWallet}>
               Buy Now

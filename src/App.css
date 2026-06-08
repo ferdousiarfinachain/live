@@ -75,28 +75,26 @@
 }
 
 .about-section__image-space {
-  
   overflow: hidden;
-  min-height: 420px;
-  
+  min-height: 360px;
 }
 
 .about-section__image-space img {
   width: 100%;
   height: 100%;
-  min-height: 420px;
+  min-height: 360px;
   display: block;
   object-fit: cover;
-  transform: scale(1.02);
+  transform: scale(0.96);
   animation: aboutImageFloat 6s ease-in-out infinite;
 }
 
 @keyframes aboutImageFloat {
   0%, 100% {
-    transform: translateY(0) scale(1.02);
+    transform: translateY(0) scale(0.96);
   }
   50% {
-    transform: translateY(-8px) scale(1.05);
+    transform: translateY(-8px) scale(0.99);
   }
 }
 
@@ -120,7 +118,7 @@
   margin: 0 0 8px;
   color: #eaf4ff;
   font-size: 1.02rem;
-  line-height: 1.72;
+  line-height: 1.5;
   font-weight: 400;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
@@ -137,10 +135,6 @@
   margin: 20px 0 20px;
   border-radius: 14px;
   border: 1px solid rgba(240, 100, 6, 0.904);
-  background:
-    linear-gradient(155deg, rgba(22, 26, 34, 0.76), rgba(56, 39, 25, 0.692)),
-    radial-gradient(circle at 86% 14%, rgba(121, 221, 255, 0.22), transparent 46%),
-    radial-gradient(circle at 14% 86%, rgba(92, 153, 255, 0.16), transparent 48%);
   padding: 12px 14px;
   position: relative;
   overflow: hidden;
@@ -369,9 +363,6 @@
   overflow: hidden;
   text-align: left;
   border-radius: 14px;
-  background:
-    linear-gradient(165deg, rgba(37, 30, 30, 0.97), rgba(0, 0, 0, 0.98)),
-    radial-gradient(circle at 84% 12%, rgb(255, 255, 255), transparent 55%);
   min-height: 272px;
   padding: 22px 20px 20px;
   box-shadow:
@@ -492,9 +483,9 @@
 .how-to-buy-card p {
   margin: 0;
   color: rgba(242, 247, 255, 0.95);
-  font-size: 1rem;
-  line-height: 1.62;
-  font-weight: 600;
+  font-size: 0.97rem;
+  line-height: 1.5;
+  font-weight: 400;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.32);
 }
 
@@ -680,9 +671,6 @@
   border-radius: 16px;
   padding: 16px 18px 15px;
   border: 1px solid rgba(253, 89, 0, 0.78);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.065) 0%, transparent 38%),
-    linear-gradient(165deg, #171412 0%, #0a0908 48%, #000000 100%);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   box-shadow:
@@ -811,46 +799,19 @@
   filter: drop-shadow(0 0 16px rgba(253, 89, 0, 0.82));
 }
 
-.timeline-card--launch {
-  border-color: rgba(253, 89, 0, 0.82);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, transparent 36%),
-    linear-gradient(155deg, #1c1714 0%, #0d0b0a 44%, #000000 100%);
-}
-
-.timeline-card--ecosystem {
-  border-color: rgba(253, 89, 0, 0.8);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, transparent 36%),
-    linear-gradient(168deg, #141619 0%, #080808 46%, #000000 100%);
-}
-
+.timeline-card--ecosystem,
 .timeline-card--growth {
-  border-color: rgba(253, 89, 0, 0.8);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 36%),
-    linear-gradient(162deg, #181512 0%, #090807 45%, #000000 100%);
+  border: 1px solid rgba(253, 89, 0, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 0 -28px 48px -34px rgba(253, 89, 0, 0.075),
+    0 10px 36px rgba(0, 0, 0, 0.58),
+    0 0 0 1px rgba(0, 0, 0, 0.55);
 }
 
-.timeline-item:hover .timeline-card--launch {
-  border-color: rgba(255, 138, 72, 0.98);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 32%),
-    linear-gradient(155deg, #282018 0%, #151210 40%, #050505 100%);
-}
-
-.timeline-item:hover .timeline-card--ecosystem {
-  border-color: rgba(255, 132, 68, 0.96);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.085) 0%, transparent 32%),
-    linear-gradient(168deg, #1c2026 0%, #0e1014 42%, #030303 100%);
-}
-
+.timeline-item:hover .timeline-card--ecosystem,
 .timeline-item:hover .timeline-card--growth {
-  border-color: rgba(255, 130, 66, 0.96);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, transparent 32%),
-    linear-gradient(162deg, #241f1b 0%, #12100e 41%, #050505 100%);
+  border-color: rgba(255, 132, 68, 0.96);
 }
 
 .timeline-card__head {
@@ -894,10 +855,10 @@
 }
 
 .timeline-card li {
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 0.93rem;
-  line-height: 1.38;
-  font-weight: 600;
+  color: rgba(255, 255, 255, 0.952);
+  font-size: 0.98rem;
+  line-height: 1.4;
+  font-weight: 400;
   transition: color 0.35s ease;
 }
 
@@ -1067,7 +1028,7 @@
 .footer-disclaimer {
   margin: 0;
   color: rgb(255, 255, 255);
-  font-size: 14px;
+  font-size: 0.98rem;
   line-height: 1.6;
   max-width: 920px;
   margin-inline: auto;
@@ -1549,11 +1510,11 @@ html.scroll-locked {
 
 
   .about-section__image-space {
-    min-height: 280px;
+    min-height: 250px;
   }
 
   .about-section__image-space img {
-    min-height: 280px;
+    min-height: 250px;
   }
 
   .about-section__content ul {
@@ -1576,6 +1537,17 @@ html.scroll-locked {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .how-to-buy__title {
+    font-size: clamp(1.55rem, 5.2vw, 2rem);
+    line-height: 1.12;
+  }
+
+  .how-to-buy__subtitle {
+    font-size: 0.68rem;
+    line-height: 1.4;
+    padding: 0 6px;
+  }
+
 }
 
 @media (max-width: 560px) {
@@ -1584,6 +1556,7 @@ html.scroll-locked {
     --header-bar-h: 68px;
   }
 
+  
   .page-main {
     padding: calc(var(--header-bar-h) + 16px) 10px 24px;
     gap: 28px;
@@ -1621,7 +1594,7 @@ html.scroll-locked {
   }
 
   .footer-disclaimer {
-    font-size: 12px;
+    font-size: 0.86rem;
     line-height: 1.5;
   }
 
@@ -1641,8 +1614,8 @@ html.scroll-locked {
   }
 
   .how-to-buy__header {
-    gap: 10px;
-    margin-bottom: 22px;
+    gap: 8px;
+    margin-bottom: 18px;
   }
 
   .how-to-buy-section {
@@ -1651,6 +1624,14 @@ html.scroll-locked {
 
   .how-to-buy__subtitle {
     max-width: 100%;
+    font-size: 0.64rem;
+    line-height: 1.38;
+    padding: 0 4px;
+  }
+
+  .how-to-buy__title {
+    font-size: clamp(1.38rem, 6.2vw, 1.65rem);
+    line-height: 1.14;
   }
 
   .how-to-buy__grid {
@@ -1661,4 +1642,141 @@ html.scroll-locked {
     min-height: 236px;
   }
 
+}
+
+
+
+
+@media (max-width: 991px) and (min-width: 560px) {
+  .about-section__content p {
+    margin: 0 0 8px;
+    color: #eaf4ff;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+  .how-to-buy-card p {
+    margin: 0;
+    color: rgba(242, 247, 255, 0.95);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.32);
+  }
+
+  .footer-disclaimer {
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  .about-section__content p {
+    margin: 0 0 8px;
+    color: #eaf4ff;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+  .how-to-buy-card p {
+    margin: 0;
+    color: rgba(242, 247, 255, 0.95);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.32);
+  }
+
+  .footer-disclaimer {
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+}
+
+
+
+@media (max-width: 1199px) {
+  .about-section__content p {
+    margin: 0 0 8px;
+    color: #eaf4ff;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+  .how-to-buy-card p {
+    margin: 0;
+    color: rgba(242, 247, 255, 0.95);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.32);
+  }
+
+    .footer-disclaimer {
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+}
+
+
+
+
+@media (max-width: 767px) {
+  .about-section__content p {
+    margin: 0 0 8px;
+    color: #eaf4ff;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+  .how-to-buy-card p {
+    margin: 0;
+    color: rgba(242, 247, 255, 0.95);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.32);
+  }
+
+  .footer-disclaimer {
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+}
+
+
+
+
+@media screen and (min-width: 320px) and (max-width: 480px) {
+  .about-section__content p {
+    margin: 0 0 8px;
+    color: #eaf4ff;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+  .how-to-buy-card p {
+    margin: 0;
+    color: rgba(242, 247, 255, 0.95);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    font-weight: 400;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.32);
+  }
+
+  .about-section__content ul{
+    font-size: 0.84rem;
+  }
+
+
+
+  .footer-disclaimer {
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
 }

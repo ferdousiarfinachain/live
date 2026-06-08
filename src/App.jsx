@@ -54,28 +54,26 @@ const howToBuySteps = [
     number: '1',
     title: 'Create a Wallet',
     description:
-      'Download MetaMask on your phone or as a Chrome browser extension. Keep your seed phrase secure and never share it with anyone.',
+      'Install MetaMask or another supported EVM wallet and securely store your recovery phrase.',
     iconKey: 'wallet',
   },
   {
     number: '2',
-    title: 'Get BNB',
-    description:
-      'Purchase BNB directly in your wallet or buy on an exchange and transfer it to your wallet.',
+    title: 'Fund Your Wallet',
+    description: 'Hold BNB, ETH, USDT, or USDC on any supported network.',
     iconKey: 'bnb',
   },
   {
     number: '3',
-    title: 'Get ETH and USDT',
-    description:
-      'Purchase ETH and USDT directly in your wallet or buy on an exchange and transfer it to your wallet.',
+    title: 'Connect Wallet',
+    description: 'Connect your wallet to the official Novex presale application.',
     iconKey: 'wallet-simple',
   },
   {
     number: '4',
-    title: 'Swap for $NOVEX',
+    title: 'Complete Purchase',
     description:
-      'Enter the official $NOVEX contract address, set slippage to 5-7%, and confirm the transaction.',
+      'The system automatically detects your supported balances and allows you to purchase $NOVEX directly from your preferred network.',
     iconKey: 'swap',
   },
 ]
@@ -290,26 +288,31 @@ function App() {
             </div>
             <article className="about-section__content">
               <h2>About Novex</h2>
-              <h3>Your Financial Freedom Starts Here</h3>
+              <h3>The Future of Cross-Chain Participation</h3>
               <p>
-                Novex is designed to give you full control over your money - without
-                intermediaries, restrictions, or hidden risks.
+                Novex is building a simple and accessible presale ecosystem that removes
+                blockchain barriers and allows users to participate using assets they already
+                hold.
+              </p>
+              <p>
+                Whether your funds are on Ethereum, Arbitrum, Base, Optimism, Polygon,
+                Avalanche, or BNB Smart Chain, Novex enables a seamless contribution experience
+                without unnecessary complexity.
               </p>
               <div className="about-section__why-card">
                 <p className="about-section__why">Why Novex?</p>
                 <ul>
-                  <li>Fixed supply - protects against inflation</li>
-                  <li>Decentralized - no single authority controls it</li>
-                  <li>Secure and censorship-resistant</li>
-                  <li>Full ownership - your assets, your control</li>
+                  <li>Multi-chain payment support</li>
+                  <li>Transparent presale allocation</li>
+                  <li>Secure BNB Smart Chain infrastructure</li>
+                  <li>Fast participation process</li>
+                  <li>Community-driven growth</li>
+                  <li>Fixed supply token model</li>
                 </ul>
               </div>
               <p>
-                Novex empowers individuals to store and transfer value freely, without
-                relying on traditional systems.
-              </p>
-              <p>
-                Built for those who believe in independence, privacy, and true financial ownership.
+                Novex is designed for users who want flexibility, transparency, and full
+                control over their digital assets.
               </p>
               <button
                 type="button"
@@ -330,7 +333,7 @@ function App() {
                   How to Buy <span>$NOVEX</span>
                 </h1>
                 <p className="how-to-buy__subtitle">
-                  Join the Novex presale in four simple steps—secure, transparent, and built for the long term.
+                  Join the Novex presale in four simple steps.
                 </p>
               </div>
               <div className="how-to-buy__grid">

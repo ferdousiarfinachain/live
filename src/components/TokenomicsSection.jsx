@@ -215,7 +215,8 @@ export default function TokenomicsSection({ id = 'tokenomics' }) {
             </span>
           </div>
           <p className="tokenomics-section__subtitle">
-            Token allocation engineered for enduring stability and community expansion.
+            Novex tokenomics are designed for sustainable growth, liquidity, and community
+            participation with transparent token distribution.
           </p>
         </header>
 

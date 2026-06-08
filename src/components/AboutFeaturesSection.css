@@ -34,7 +34,7 @@
 .hero-title {
   margin: 0;
   color: transparent;
-  font-size: clamp(2.1rem, 4.2vw, 4rem);
+  font-size: clamp(1.85rem, 3.5vw, 3.35rem);
   line-height: 1.08;
   font-weight: 900;
   background: linear-gradient(90deg, #7df4ff 0%, #98b8ff 52%, #b38dff 100%);
@@ -56,13 +56,16 @@
 }
 
 .hero-copy {
-  margin: 18px 0 0;
+  margin: 12px 0 0;
   max-width: 640px;
-  color: #f2f7ff;
-  font-size: clamp(0.88rem, 1.12vw, 1.18rem);
-  line-height: 1.42;
-  font-weight: 800;
-  text-shadow: 0 1px 5px rgba(4, 10, 22, 0.55);
+  color: #ffffff;
+  font-size: clamp(0.86rem, 1.02vw, 1.02rem);
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.hero-copy + .hero-copy {
+  margin-top: 8px;
 }
 
 .hero-cta {
@@ -248,20 +251,20 @@
 }
 
 .hero-feature-grid {
-  margin-top: 16px;
-  width: min(640px, 100%);
+  margin-top: 5px;
+  width: min(600px, 100%);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .hero-feature-card {
   position: relative;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 102, 0, 0.849);
-  
-  padding: 10px 10px 11px;
+
+  padding: 10px 11px 11px;
   
   transition:
     transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -324,10 +327,11 @@
   position: relative;
   z-index: 1;
   margin: 0;
-  color: #fff8eb;
+  color: #ffffff;
   font-size: 0.84rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  line-height: 1.32;
+  letter-spacing: normal;
   transition: color 280ms ease, text-shadow 280ms ease;
 }
 
@@ -335,11 +339,11 @@
   position: relative;
   z-index: 1;
   display: block;
-  margin-top: 5px;
+  margin-top: 6px;
   color: #ffffff;
-  font-size: 0.72rem;
-  line-height: 1.45;
-  font-weight: 600;
+  font-size: 0.76rem;
+  line-height: 1.48;
+  font-weight: 400;
   transition: color 280ms ease;
 }
 
@@ -1087,6 +1091,15 @@
   text-align: center;
 }
 
+.presale-amount-warning {
+  margin: 8px 0 0;
+  padding: 0;
+  color: #ffb347;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
 .presale-network-status {
   margin: 10px 0 0;
   color: rgba(223, 233, 255, 0.78);
@@ -1326,12 +1339,12 @@
   }
 
   .hero-title {
-    font-size: 1.9rem;
+    font-size: 1.65rem;
   }
 
   .hero-copy {
-    font-size: 0.86rem;
-    line-height: 1.4;
+    font-size: 0.88rem;
+    line-height: 1.45;
   }
 
   .hero-visual {
@@ -1512,7 +1525,7 @@
   }
 
   .hero-feature-card {
-    padding: 9px 9px 10px;
+    padding: 9px 10px 10px;
   }
 }
 
