@@ -174,7 +174,7 @@ export default function PurchaseSuccessModal({
             target="_blank"
             rel="noopener noreferrer"
           >
-            View on BscScan
+            View on Blockchain Explorer
             <ExternalLink size={14} />
           </a>
         ) : null}

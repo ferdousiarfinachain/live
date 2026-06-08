@@ -173,7 +173,9 @@ export async function getSpendableTreasuryBalance(accountAddress, paymentMethod,
   spendableBalanceInFlight.set(cacheKey, request)
   try {
     const value = await request
-    writeSpendableCache(cacheKey, value)
+    if (value > 0) {
+      writeSpendableCache(cacheKey, value)
+    }
     return value
   } finally {
     spendableBalanceInFlight.delete(cacheKey)
@@ -205,7 +207,9 @@ export async function getSpendableBnbBalance(accountAddress) {
   spendableBalanceInFlight.set(cacheKey, request)
   try {
     const value = await request
-    writeSpendableCache(cacheKey, value)
+    if (value > 0) {
+      writeSpendableCache(cacheKey, value)
+    }
     return value
   } finally {
     spendableBalanceInFlight.delete(cacheKey)
@@ -282,14 +286,20 @@ async function scanTreasuryBalances(accountAddress, paymentMethod, networks) {
 }
 
 function pickBestBalance(balances, walletNetwork) {
-  if (walletNetwork) {
-    const walletBalance = balances.find((item) => item.networkKey === walletNetwork.key)
-    if (walletBalance && walletBalance.balance > 0) {
-      return walletBalance
+  const sorted = [...balances].sort((a, b) => {
+    if (b.balance !== a.balance) {
+      return b.balance - a.balance
     }
-  }
-
-  const sorted = [...balances].sort((a, b) => b.balance - a.balance)
+    if (walletNetwork) {
+      if (a.networkKey === walletNetwork.key) {
+        return -1
+      }
+      if (b.networkKey === walletNetwork.key) {
+        return 1
+      }
+    }
+    return 0
+  })
   if (sorted[0]?.balance > 0) {
     return sorted[0]
   }
@@ -313,18 +323,13 @@ async function resolveBestTreasuryBalance(accountAddress, paymentMethod, walletC
   }
 
   const walletNetwork = findTreasuryNetworkByChainId(paymentMethod, walletChainId)
-  if (walletNetwork) {
+  if (walletNetwork && Number(walletChainId) === appChain.id) {
     const walletBalance = await getSpendableTreasuryBalance(
       accountAddress,
       paymentMethod,
       walletNetwork.key,
     )
-    if (walletBalance > 0) {
-      return { networkKey: walletNetwork.key, balance: walletBalance }
-    }
-    if (Number(walletChainId) === appChain.id) {
-      return { networkKey: walletNetwork.key, balance: 0 }
-    }
+    return { networkKey: walletNetwork.key, balance: walletBalance }
   }
 
   const walletChainKnown =

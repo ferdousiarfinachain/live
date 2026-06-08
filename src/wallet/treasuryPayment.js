@@ -118,6 +118,7 @@ export async function payViaTreasury({
         walletAddress: account.address,
         amountPaid: amount,
         chainLabel: paymentMethod,
+        networkKey: network.key,
         novexAmount,
       })
     } catch {
