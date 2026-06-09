@@ -1247,8 +1247,7 @@ html.scroll-locked {
   border-radius: 10px;
   background: linear-gradient(180deg, #fa7901 0%, #f06400 78%, #df5600 100%);
   color: #ffffff;
-  /* font-family: 'press start 2p', Arial, Helvetica, sans-serif; */
-  font-family: Orbitron, Inter, Arial, sans-serif;
+  font-family: Inter;
   font-size: 19px;
   font-weight: 700;
   letter-spacing: 0.03em;
