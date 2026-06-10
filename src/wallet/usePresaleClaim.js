@@ -67,6 +67,14 @@ export function usePresaleClaim(enabled = true) {
   const [isClaiming, setIsClaiming] = useState(false)
   const [claimError, setClaimError] = useState('')
 
+  useEffect(() => {
+    if (!claimError) {
+      return undefined
+    }
+    const timerId = window.setTimeout(() => setClaimError(''), 2000)
+    return () => window.clearTimeout(timerId)
+  }, [claimError])
+
   const refresh = useCallback(async () => {
     if (!enabled || !isPresaleConfigured) {
       setPurchasedDisplay('0')
