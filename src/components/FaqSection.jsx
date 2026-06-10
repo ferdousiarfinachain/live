@@ -5,7 +5,7 @@ const faqItems = [
   {
     question: 'What is Novex?',
     answer:
-      'Novex is the native token ecosystem focused on community presales, transparent allocations, and on-chain claims when enabled.',
+      'Novex is the native token ecosystem focused on community presales, transparent allocations, and Multi-chain claims when enabled.',
   },
   {
     question: 'What payment methods are supported?',
