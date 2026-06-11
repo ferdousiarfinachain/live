@@ -22,33 +22,9 @@ const HIDE_UI_CSS = `
 `
 
 const patchedShadowRoots = new WeakSet()
+let refreshScheduled = false
 
-function shouldHideWalletRow(element) {
-  const testId = element.getAttribute('data-testid') ?? ''
-  const name = element.getAttribute('name') ?? ''
-  return (
-    testId === 'wallet-selector-injected' ||
-    testId === 'wallet-selector-walletconnect' ||
-    name === 'Browser Wallet' ||
-    name === 'WalletConnect'
-  )
-}
-
-function hideUnwantedUiNodes(root) {
-  root.querySelectorAll('w3m-list-wallet, wui-list-wallet, wui-ux-by-reown').forEach((node) => {
-    if (node.tagName === 'WUI-UX-BY-REOWN' || shouldHideWalletRow(node)) {
-      node.style.setProperty('display', 'none', 'important')
-    }
-  })
-
-  root.querySelectorAll('*').forEach((node) => {
-    if (node.shadowRoot) {
-      patchShadowRoot(node.shadowRoot)
-    }
-  })
-}
-
-function patchShadowRoot(root) {
+function injectHideStyles(root) {
   if (!root || patchedShadowRoots.has(root)) {
     return
   }
@@ -62,12 +38,11 @@ function patchShadowRoot(root) {
     root.appendChild(hideStyle)
   }
 
-  hideUnwantedUiNodes(root)
-
-  const observer = new MutationObserver(() => {
-    hideUnwantedUiNodes(root)
+  root.querySelectorAll('*').forEach((node) => {
+    if (node.shadowRoot) {
+      injectHideStyles(node.shadowRoot)
+    }
   })
-  observer.observe(root, { childList: true, subtree: true })
 }
 
 function patchReownModal(modal) {
@@ -105,7 +80,7 @@ function patchReownModal(modal) {
     root.appendChild(style)
   }
 
-  patchShadowRoot(root)
+  injectHideStyles(root)
 }
 
 function refreshReownModalPatches() {
@@ -115,6 +90,17 @@ function refreshReownModalPatches() {
   document.querySelectorAll('w3m-modal').forEach(patchReownModal)
 }
 
+function scheduleRefreshReownModalPatches() {
+  if (refreshScheduled || typeof document === 'undefined') {
+    return
+  }
+  refreshScheduled = true
+  requestAnimationFrame(() => {
+    refreshScheduled = false
+    refreshReownModalPatches()
+  })
+}
+
 function installReownModalUiPatches() {
   if (typeof document === 'undefined') {
     return
@@ -122,21 +108,34 @@ function installReownModalUiPatches() {
 
   refreshReownModalPatches()
 
-  const observer = new MutationObserver(refreshReownModalPatches)
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          continue
+        }
+        if (node.localName === 'w3m-modal' || node.querySelector?.('w3m-modal')) {
+          scheduleRefreshReownModalPatches()
+          return
+        }
+      }
+    }
+  })
   observer.observe(document.body, { childList: true, subtree: true })
 
   ModalController.subscribeKey('open', (isOpen) => {
-    if (isOpen) {
-      refreshReownModalPatches()
-      requestAnimationFrame(refreshReownModalPatches)
-      setTimeout(refreshReownModalPatches, 0)
-      setTimeout(refreshReownModalPatches, 100)
+    if (!isOpen) {
+      return
     }
+    scheduleRefreshReownModalPatches()
+    setTimeout(scheduleRefreshReownModalPatches, 100)
   })
 }
 
 function disableReownBranding() {
-  OptionsController.setRemoteFeatures({ reownBranding: false })
+  if (OptionsController.state.remoteFeatures?.reownBranding) {
+    OptionsController.setRemoteFeatures({ reownBranding: false })
+  }
 }
 
 if (reownProjectId) {

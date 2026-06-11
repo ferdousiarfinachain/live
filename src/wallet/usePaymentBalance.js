@@ -6,6 +6,7 @@ import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
 import { isWalletConfigured } from './walletMetadata.js'
 import {
   getBestTreasuryBalance,
+  getCachedBestTreasuryBalance,
   getCachedSpendableBalance,
   getSpendableBnbBalance,
   warmPaymentBalanceCache,
@@ -32,12 +33,7 @@ function formatSpendableBalance(amount, paymentMethod) {
 }
 
 function readCachedTreasuryMax(address, paymentMethod, walletChainId) {
-  const cachedBalance = getCachedSpendableBalance(
-    address,
-    paymentMethod,
-    walletChainId,
-    '',
-  )
+  const cachedBalance = getCachedBestTreasuryBalance(address, paymentMethod, walletChainId)
   if (cachedBalance === null) {
     return ''
   }
@@ -113,7 +109,7 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
 
     void warmPaymentBalanceCache(address, walletChainId)
     return undefined
-  }, [address, enabled, paymentMethod, walletChainId])
+  }, [address, enabled, walletChainId])
 
   useEffect(() => {
     const methodReady = treasuryMethod
@@ -156,39 +152,38 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
       }
     }
 
-    async function loadMaxPay() {
+    async function loadMaxPay({ forceRefresh = false } = {}) {
       const chainId = walletChainIdRef.current
       try {
         let nextMax = ''
 
         if (paymentMethod === 'BNB') {
-          const cachedBalance = getCachedSpendableBalance(
-            address,
-            paymentMethod,
-            chainId,
-            treasuryNetworkKey,
-          )
+          const cachedBalance = forceRefresh
+            ? null
+            : getCachedSpendableBalance(
+                address,
+                paymentMethod,
+                chainId,
+                treasuryNetworkKey,
+              )
           if (cachedBalance !== null) {
             nextMax = formatSpendableBalance(cachedBalance, paymentMethod)
           } else {
-            const balance = await getSpendableBnbBalance(address)
+            const balance = await getSpendableBnbBalance(address, { bypassCache: forceRefresh })
             nextMax = formatSpendableBalance(balance, paymentMethod)
           }
         } else if (treasuryMethod) {
-          const cachedTreasuryMax = readCachedTreasuryMax(
-            address,
-            paymentMethod,
-            chainId,
-          )
+          const cachedTreasuryMax = forceRefresh
+            ? ''
+            : readCachedTreasuryMax(address, paymentMethod, chainId)
           if (cachedTreasuryMax) {
             nextMax = cachedTreasuryMax
+          } else {
+            const { balance } = await getBestTreasuryBalance(address, paymentMethod, chainId, {
+              bypassCache: forceRefresh,
+            })
+            nextMax = formatSpendableBalance(balance, paymentMethod)
           }
-          const { balance } = await getBestTreasuryBalance(
-            address,
-            paymentMethod,
-            chainId,
-          )
-          nextMax = formatSpendableBalance(balance, paymentMethod)
         }
 
         if (!cancelled) {
@@ -206,7 +201,7 @@ export function usePaymentBalance(paymentMethod, treasuryNetworkKey = '', enable
     }
 
     loadMaxPay()
-    const timer = window.setInterval(loadMaxPay, 15_000)
+    const timer = window.setInterval(() => loadMaxPay({ forceRefresh: true }), 15_000)
 
     return () => {
       cancelled = true
