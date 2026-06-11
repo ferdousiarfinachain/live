@@ -1,5 +1,5 @@
 import { createAppKit } from '@reown/appkit/react'
-import { ModalController, OptionsController } from '@reown/appkit-controllers'
+import { ModalController, OptionsController, RouterController } from '@reown/appkit-controllers'
 import { wagmiChains } from './chains.js'
 import { WALLET_ORDER } from './Order.js'
 import './reownModalOverrides.css'
@@ -21,15 +21,28 @@ const HIDE_UI_CSS = `
   }
 `
 
-const patchedShadowRoots = new WeakSet()
+const styledShadowRoots = new WeakSet()
+const observedModalRoots = new WeakSet()
 let refreshScheduled = false
+let refreshTimers = []
 
-function injectHideStyles(root) {
-  if (!root || patchedShadowRoots.has(root)) {
+function shouldHideWalletRow(element) {
+  const testId = element.getAttribute('data-testid') ?? ''
+  const name = element.getAttribute('name') ?? ''
+  return (
+    testId === 'wallet-selector-walletconnect' ||
+    testId === 'wallet-selector-injected' ||
+    name === 'WalletConnect' ||
+    name === 'Browser Wallet'
+  )
+}
+
+function ensureHideStyles(root) {
+  if (!root || styledShadowRoots.has(root)) {
     return
   }
 
-  patchedShadowRoots.add(root)
+  styledShadowRoots.add(root)
 
   if (!root.querySelector('[data-novex-ui-hides]')) {
     const hideStyle = document.createElement('style')
@@ -37,12 +50,47 @@ function injectHideStyles(root) {
     hideStyle.textContent = HIDE_UI_CSS
     root.appendChild(hideStyle)
   }
+}
+
+function hideUnwantedWalletRows(root) {
+  if (!root) {
+    return
+  }
+
+  root.querySelectorAll('w3m-list-wallet, wui-list-wallet, wui-ux-by-reown').forEach((node) => {
+    if (node.tagName === 'WUI-UX-BY-REOWN' || shouldHideWalletRow(node)) {
+      node.style.setProperty('display', 'none', 'important')
+    }
+  })
+}
+
+function walkShadowTree(root) {
+  if (!root) {
+    return
+  }
+
+  ensureHideStyles(root)
+  hideUnwantedWalletRows(root)
 
   root.querySelectorAll('*').forEach((node) => {
     if (node.shadowRoot) {
-      injectHideStyles(node.shadowRoot)
+      walkShadowTree(node.shadowRoot)
     }
   })
+}
+
+function observeModalShadow(modal) {
+  const root = modal.shadowRoot
+  if (!root || observedModalRoots.has(root)) {
+    return
+  }
+
+  observedModalRoots.add(root)
+
+  const observer = new MutationObserver(() => {
+    scheduleRefreshReownModalPatches()
+  })
+  observer.observe(root, { childList: true, subtree: true })
 }
 
 function patchReownModal(modal) {
@@ -80,7 +128,8 @@ function patchReownModal(modal) {
     root.appendChild(style)
   }
 
-  injectHideStyles(root)
+  walkShadowTree(root)
+  observeModalShadow(modal)
 }
 
 function refreshReownModalPatches() {
@@ -101,6 +150,17 @@ function scheduleRefreshReownModalPatches() {
   })
 }
 
+function scheduleModalOpenRefreshes() {
+  refreshTimers.forEach((timer) => window.clearTimeout(timer))
+  refreshTimers = []
+
+  scheduleRefreshReownModalPatches()
+  refreshTimers.push(window.setTimeout(scheduleRefreshReownModalPatches, 0))
+  refreshTimers.push(window.setTimeout(scheduleRefreshReownModalPatches, 50))
+  refreshTimers.push(window.setTimeout(scheduleRefreshReownModalPatches, 150))
+  refreshTimers.push(window.setTimeout(scheduleRefreshReownModalPatches, 350))
+}
+
 function installReownModalUiPatches() {
   if (typeof document === 'undefined') {
     return
@@ -115,7 +175,7 @@ function installReownModalUiPatches() {
           continue
         }
         if (node.localName === 'w3m-modal' || node.querySelector?.('w3m-modal')) {
-          scheduleRefreshReownModalPatches()
+          scheduleModalOpenRefreshes()
           return
         }
       }
@@ -124,11 +184,15 @@ function installReownModalUiPatches() {
   observer.observe(document.body, { childList: true, subtree: true })
 
   ModalController.subscribeKey('open', (isOpen) => {
-    if (!isOpen) {
-      return
+    if (isOpen) {
+      scheduleModalOpenRefreshes()
     }
-    scheduleRefreshReownModalPatches()
-    setTimeout(scheduleRefreshReownModalPatches, 100)
+  })
+
+  RouterController.subscribeKey('view', (view) => {
+    if (view === 'Connect' && ModalController.state.open) {
+      scheduleModalOpenRefreshes()
+    }
   })
 }
 

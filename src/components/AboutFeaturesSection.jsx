@@ -314,7 +314,7 @@ function AboutFeaturesSection({
 
           <a
             className="hero-cta"
-            href="/pathways.pdf"
+            href="/whitepaper.pdf"
             target="_blank"
             rel="noopener noreferrer"
           >
