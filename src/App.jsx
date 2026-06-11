@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeftRight, Wallet } from 'lucide-react'
-import { FaDiscord, FaInstagram } from 'react-icons/fa'
 import { FaXTwitter } from 'react-icons/fa6'
-import { SiBinance } from 'react-icons/si'
-import { SiTelegram, SiTiktok } from 'react-icons/si'
+import { SiBinance, SiTelegram } from 'react-icons/si'
 import {
   ConnectWalletModal,
   MODAL_CLOSE_MS,
@@ -129,9 +127,6 @@ const WALLET_GUIDE_HANDOFF_MS = MODAL_CLOSE_MS
 const socialLinks = [
   { label: 'X', href: '#', icon: FaXTwitter },
   { label: 'Telegram', href: '#', icon: SiTelegram },
-  { label: 'Discord', href: '#', icon: FaDiscord },
-  { label: 'TikTok', href: '#', icon: SiTiktok },
-  { label: 'Instagram', href: '#', icon: FaInstagram },
 ]
 
 function App() {
