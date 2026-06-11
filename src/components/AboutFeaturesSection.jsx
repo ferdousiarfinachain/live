@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAccount } from 'wagmi'
 import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
 import {
@@ -73,13 +74,13 @@ function AboutFeaturesSection({
   onProceedToPay,
 }) {
   const [selectedPayment, setSelectedPayment] = useState(paymentMethods[0].name)
-  const [selectedTreasuryNetwork, setSelectedTreasuryNetwork] = useState('')
   const [payAmount, setPayAmount] = useState('')
   const [amountWarning, setAmountWarning] = useState('')
   const [isPayConfirming, setIsPayConfirming] = useState(false)
   const amountWarningTimerRef = useRef(null)
   const [successPurchase, setSuccessPurchase] = useState(null)
   const [successClaim, setSuccessClaim] = useState(null)
+  const { address: walletAddress } = useAccount()
   const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
   const presaleStats = usePresaleStats()
   const treasurySelected = isTreasuryPaymentMethod(selectedPayment)
@@ -88,7 +89,7 @@ function AboutFeaturesSection({
     [selectedPayment, treasurySelected],
   )
 
-  const { suggestedNetworkKey } = useTreasuryNetworkDetect(
+  const { treasuryNetworkKey: selectedTreasuryNetwork } = useTreasuryNetworkDetect(
     selectedPayment,
     isConnected && treasurySelected,
   )
@@ -105,37 +106,6 @@ function AboutFeaturesSection({
       }
     }
   }, [])
-
-  useEffect(() => {
-    if (treasurySelected) {
-      setPayAmount('')
-    }
-  }, [selectedTreasuryNetwork, treasurySelected])
-
-  useEffect(() => {
-    if (!treasurySelected) {
-      setSelectedTreasuryNetwork('')
-      return
-    }
-    const stillValid = configuredTreasuryNetworks.some(
-      (network) => network.key === selectedTreasuryNetwork,
-    )
-    if (!stillValid) {
-      setSelectedTreasuryNetwork(configuredTreasuryNetworks[0]?.key ?? '')
-    }
-  }, [configuredTreasuryNetworks, selectedTreasuryNetwork, treasurySelected])
-
-  useEffect(() => {
-    if (!treasurySelected || !suggestedNetworkKey) {
-      return
-    }
-    const isSuggestedAvailable = configuredTreasuryNetworks.some(
-      (network) => network.key === suggestedNetworkKey,
-    )
-    if (isSuggestedAvailable) {
-      setSelectedTreasuryNetwork(suggestedNetworkKey)
-    }
-  }, [configuredTreasuryNetworks, suggestedNetworkKey, treasurySelected])
 
   const paymentMethodReady = treasurySelected
     ? isTreasuryRouteConfigured(selectedPayment, selectedTreasuryNetwork)
@@ -155,11 +125,13 @@ function AboutFeaturesSection({
     quoteEnabled,
     quoteTreasuryNetwork,
   )
-  const { maxPayAmount, isLoadingMaxPay, refreshMaxPay, fetchMaxPayAmount } = usePaymentBalance(
+  const balanceEnabled =
+    Boolean(walletAddress) &&
+    (treasurySelected ? configuredTreasuryNetworks.length > 0 : paymentMethodReady)
+  const { maxPayAmount, isLoadingMaxPay, fetchMaxPayAmount } = usePaymentBalance(
     selectedPayment,
     selectedTreasuryNetwork,
-    isConnected &&
-      (treasurySelected ? configuredTreasuryNetworks.length > 0 : paymentMethodReady),
+    balanceEnabled,
   )
   const receiveAmount = quotedReceive
 
@@ -261,7 +233,7 @@ function AboutFeaturesSection({
   }
 
   async function applyMaxPay() {
-    if (!isConnected) {
+    if (!walletAddress) {
       onConnectWallet?.()
       return
     }
@@ -446,7 +418,7 @@ function AboutFeaturesSection({
                   className="presale-max-btn"
                   onClick={applyMaxPay}
                   title={
-                    !isConnected
+                    !walletAddress
                       ? 'Connect wallet to use your balance'
                       : isLoadingMaxPay
                         ? 'Loading wallet balance…'

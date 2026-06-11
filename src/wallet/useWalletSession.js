@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useActiveAccount, useActiveWallet, useDisconnect } from 'thirdweb/react'
+import { useAccount, useDisconnect } from 'wagmi'
 
 const WAS_CONNECTED_KEY = 'novex_wallet_connected'
 const SHORT_ADDRESS_KEY = 'novex_wallet_short'
@@ -17,12 +17,9 @@ function readWasConnected() {
 }
 
 export function useWalletSession() {
-  const account = useActiveAccount()
-  const activeWallet = useActiveWallet()
+  const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
 
-  const address = account?.address
-  const isConnected = Boolean(address)
   const shortAddress = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : ''
   const [awaitingReconnect, setAwaitingReconnect] = useState(readWasConnected)
 
@@ -52,9 +49,7 @@ export function useWalletSession() {
     window.sessionStorage.removeItem(WAS_CONNECTED_KEY)
     window.sessionStorage.removeItem(SHORT_ADDRESS_KEY)
     setAwaitingReconnect(false)
-    if (activeWallet) {
-      disconnect(activeWallet)
-    }
+    disconnect()
   }
 
   return {

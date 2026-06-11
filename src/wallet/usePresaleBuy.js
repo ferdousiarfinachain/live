@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { prepareContractCall, sendAndConfirmTransaction } from 'thirdweb'
-import { readContract } from 'thirdweb'
-import { useActiveAccount, useActiveWallet, useActiveWalletChain, useSwitchActiveWalletChain } from 'thirdweb/react'
-import { toWei } from 'thirdweb/utils'
-import { appChain, isPresaleConfigured } from '../contracts/config.js'
+import { parseEther } from 'viem'
+import { readContract, waitForTransactionReceipt, writeContract } from 'wagmi/actions'
+import { useAccount, useChainId, useSwitchChain } from 'wagmi'
+import { appChain, isPresaleConfigured, presaleAbiExport } from '../contracts/config.js'
 import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
 import { fetchEthUsdPrice } from '../lib/chainlinkEthPrice.js'
 import { estimateTokensFromTreasuryPayment } from '../lib/presaleEstimate.js'
@@ -14,7 +13,9 @@ import {
   quoteReceiveAmount,
   readPresaleTokenPriceUsd,
 } from './presaleContract.js'
+import { detectBestTreasuryNetwork } from './treasuryBalanceScan.js'
 import { payViaTreasury } from './treasuryPayment.js'
+import { wagmiConfig } from './wagmiConfig.js'
 
 function formatBuyError(error) {
   if (!error) return 'Purchase failed. Please try again.'
@@ -197,10 +198,9 @@ export function usePresaleQuote(paymentMethod, payAmount, enabled = true, treasu
 }
 
 export function usePresaleBuy() {
-  const account = useActiveAccount()
-  const wallet = useActiveWallet()
-  const walletChain = useActiveWalletChain()
-  const switchChain = useSwitchActiveWalletChain()
+  const { address } = useAccount()
+  const walletChainId = useChainId()
+  const { switchChainAsync } = useSwitchChain()
   const [isBuying, setIsBuying] = useState(false)
   const [buyError, setBuyError] = useState('')
 
@@ -213,26 +213,27 @@ export function usePresaleBuy() {
   }, [buyError])
 
   const ensureChain = useCallback(async () => {
-    await ensureAppChain({ wallet, walletChain, switchChain })
-  }, [switchChain, wallet, walletChain?.id])
+    await ensureAppChain({ chainId: walletChainId, switchChain: switchChainAsync })
+  }, [switchChainAsync, walletChainId])
 
   const buy = useCallback(
     async ({ paymentMethod, amountHuman, treasuryNetworkKey = '' }) => {
       setBuyError('')
-      if (!account) {
+      if (!address) {
         throw new Error('Connect your wallet first.')
       }
 
       setIsBuying(true)
       try {
         if (isTreasuryPaymentMethod(paymentMethod)) {
+          const resolvedTreasuryNetworkKey =
+            (await detectBestTreasuryNetwork(address, paymentMethod, walletChainId)) ||
+            treasuryNetworkKey
           return payViaTreasury({
-            account,
-            wallet,
-            walletChain,
-            switchChain,
+            chainId: walletChainId,
+            switchChain: switchChainAsync,
             paymentMethod,
-            treasuryNetworkKey,
+            treasuryNetworkKey: resolvedTreasuryNetworkKey,
             amountHuman,
           })
         }
@@ -244,21 +245,22 @@ export function usePresaleBuy() {
 
         await ensureChain()
 
-        const saleActive = await readContract({
-          contract: presaleContract,
-          method: 'function isSaleActive() view returns (bool)',
+        const saleActive = await readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'isSaleActive',
         })
         if (!saleActive) {
           throw new Error('Presale is not active right now.')
         }
 
-        const tx = prepareContractCall({
-          contract: presaleContract,
-          method: 'function buyWithBnb()',
-          params: [],
-          value: toWei(String(amountHuman).trim()),
+        const hash = await writeContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'buyWithBnb',
+          value: parseEther(String(amountHuman).trim()),
         })
-        const receipt = await sendAndConfirmTransaction({ account, transaction: tx })
+        const receipt = await waitForTransactionReceipt(wagmiConfig, { hash })
         return {
           transactionHash: receipt.transactionHash,
           paymentMethod,
@@ -273,7 +275,7 @@ export function usePresaleBuy() {
         setIsBuying(false)
       }
     },
-    [account, ensureChain, switchChain, wallet, walletChain],
+    [address, ensureChain, switchChainAsync, walletChainId],
   )
 
   return {

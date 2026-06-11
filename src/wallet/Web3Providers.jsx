@@ -1,13 +1,12 @@
-import { AutoConnect, ThirdwebProvider } from 'thirdweb/react'
-import { supportedWallets, thirdwebClient } from './thirdwebClient'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { WagmiProvider } from 'wagmi'
+import './reownAppKit.js'
+import { queryClient, wagmiConfig } from './wagmiConfig.js'
 
 export default function Web3Providers({ children }) {
   return (
-    <ThirdwebProvider>
-      {thirdwebClient ? (
-        <AutoConnect client={thirdwebClient} wallets={supportedWallets} />
-      ) : null}
-      {children}
-    </ThirdwebProvider>
+    <WagmiProvider config={wagmiConfig} reconnectOnMount>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </WagmiProvider>
   )
 }

@@ -1,6 +1,7 @@
-import { getContract, readContract } from 'thirdweb'
+import { readContract } from 'viem/actions'
 import { getTreasuryChain } from '../contracts/treasuryChains.js'
-import { thirdwebClient } from '../wallet/thirdwebClient.js'
+import { isWalletConfigured } from '../wallet/walletMetadata.js'
+import { getPublicClient } from '../wallet/viemClients.js'
 
 /** Chainlink ETH/USD price feeds — Ethereum, Arbitrum, Base, Optimism */
 export const CHAINLINK_ETH_USD_FEEDS = {
@@ -56,26 +57,22 @@ export async function fetchEthUsdPrice(networkKey) {
   }
 
   const chain = getTreasuryChain(networkKey)
-  if (!chain || !thirdwebClient) {
+  if (!chain || !isWalletConfigured) {
     return null
   }
 
-  const contract = getContract({
-    client: thirdwebClient,
-    chain,
-    address: feedAddress,
-    abi: CHAINLINK_AGGREGATOR_ABI,
-  })
+  const client = getPublicClient(chain.id)
 
   const [roundData, decimals] = await Promise.all([
-    readContract({
-      contract,
-      method:
-        'function latestRoundData() view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)',
+    readContract(client, {
+      address: feedAddress,
+      abi: CHAINLINK_AGGREGATOR_ABI,
+      functionName: 'latestRoundData',
     }),
-    readContract({
-      contract,
-      method: 'function decimals() view returns (uint8)',
+    readContract(client, {
+      address: feedAddress,
+      abi: CHAINLINK_AGGREGATOR_ABI,
+      functionName: 'decimals',
     }),
   ])
 

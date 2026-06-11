@@ -1,5 +1,7 @@
-import { prepareContractCall, prepareTransaction, readContract, sendAndConfirmTransaction } from 'thirdweb'
-import { toWei } from 'thirdweb/utils'
+import { parseEther } from 'viem'
+import { readContract } from 'viem/actions'
+import { sendTransaction, waitForTransactionReceipt, writeContract } from 'wagmi/actions'
+import erc20Abi from '../contracts/abis/erc20.json'
 import {
   getTreasuryAddress,
   getTreasuryChain,
@@ -10,31 +12,29 @@ import {
 import { fetchEthUsdPrice } from '../lib/chainlinkEthPrice.js'
 import { estimateTokensFromTreasuryPayment } from '../lib/presaleEstimate.js'
 import { recordTreasuryPayment } from '../lib/supabaseClient.js'
+import { getAccount } from 'wagmi/actions'
 import { ensureTreasuryChain } from './useAutoSwitchChain.js'
-import { thirdwebClient } from './thirdwebClient.js'
 import {
   getCachedPresaleTokenPriceUsd,
   getErc20Contract,
   parseHumanAmount,
   readPresaleTokenPriceUsd,
 } from './presaleContract.js'
+import { wagmiConfig } from './wagmiConfig.js'
+import { getPublicClient } from './viemClients.js'
 
 async function readErc20Decimals(tokenAddress, chain) {
-  const tokenContract = getErc20Contract(tokenAddress, chain)
-  if (!tokenContract) {
-    throw new Error('Payment token contract is not configured.')
-  }
-  const decimals = await readContract({
-    contract: tokenContract,
-    method: 'function decimals() view returns (uint8)',
+  const client = getPublicClient(chain.id)
+  const decimals = await readContract(client, {
+    address: tokenAddress,
+    abi: erc20Abi,
+    functionName: 'decimals',
   })
   return Number(decimals)
 }
 
 export async function payViaTreasury({
-  account,
-  wallet,
-  walletChain,
+  chainId,
   switchChain,
   paymentMethod,
   treasuryNetworkKey,
@@ -55,7 +55,7 @@ export async function payViaTreasury({
     throw new Error('Selected network is not supported.')
   }
 
-  await ensureTreasuryChain(treasuryNetworkKey, { wallet, walletChain, switchChain })
+  await ensureTreasuryChain(treasuryNetworkKey, { chainId, switchChain })
 
   const amount = String(amountHuman ?? '').trim()
   if (!amount || Number(amount) <= 0) {
@@ -65,13 +65,12 @@ export async function payViaTreasury({
   let receipt
 
   if (paymentMethod === 'ETH') {
-    const tx = prepareTransaction({
-      client: thirdwebClient,
-      chain: targetChain,
+    const hash = await sendTransaction(wagmiConfig, {
+      chainId: targetChain.id,
       to: treasuryAddress,
-      value: toWei(amount),
+      value: parseEther(amount),
     })
-    receipt = await sendAndConfirmTransaction({ account, transaction: tx })
+    receipt = await waitForTransactionReceipt(wagmiConfig, { hash })
   } else {
     const tokenAddress = getTreasuryTokenAddress(paymentMethod, network.chainId)
     if (!tokenAddress) {
@@ -85,16 +84,19 @@ export async function payViaTreasury({
       throw new Error('Payment token contract is not configured.')
     }
 
-    const tx = prepareContractCall({
-      contract: tokenContract,
-      method: 'function transfer(address to, uint256 amount)',
-      params: [treasuryAddress, amountWei],
+    const hash = await writeContract(wagmiConfig, {
+      address: tokenContract.address,
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: [treasuryAddress, amountWei],
+      chainId: targetChain.id,
     })
-    receipt = await sendAndConfirmTransaction({ account, transaction: tx })
+    receipt = await waitForTransactionReceipt(wagmiConfig, { hash })
   }
 
   assertConfirmedReceipt(receipt)
 
+  const account = getAccount(wagmiConfig)
   const tokensEstimated =
     estimateTokensFromTreasuryPayment(paymentMethod, amount, {
       tokenPriceUsd: getCachedPresaleTokenPriceUsd(),
@@ -111,7 +113,7 @@ export async function payViaTreasury({
           ethUsdPrice,
           tokenPriceUsd,
         }) || tokensEstimated
-      if (!novexAmount) {
+      if (!novexAmount || !account.address) {
         return
       }
       await recordTreasuryPayment({

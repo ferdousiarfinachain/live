@@ -41,7 +41,7 @@
   animation: wallet-modal-in 580ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
 }
 
-.wallet-modal--thirdweb {
+.wallet-modal--connect {
   --wallet-action-width: min(100%, 370px);
   width: min(100%, 420px);
   padding: 8px 6px 8px;
@@ -49,51 +49,49 @@
   background: linear-gradient(180deg, rgba(20, 20, 26, 0.98), rgba(11, 11, 15, 0.98));
 }
 
-.wallet-modal-thirdweb {
+.wallet-modal-connect {
   width: var(--wallet-action-width);
   min-height: 0;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-.wallet-modal-thirdweb,
-.wallet-modal-thirdweb * {
-  border-color: transparent !important;
-}
-
-.wallet-modal-thirdweb .tw-wallet-select-wallet-button,
-.wallet-modal-thirdweb .tw-select-connect-a-wallet-button,
-.wallet-modal-thirdweb .tw-show-all-wallets-button button {
-  width: 100% !important;
-  height: 58px !important;
-  min-height: 58px !important;
-  margin: 4px 0 !important;
-  padding: 7px 10px !important;
-  border: 1px solid rgba(140, 155, 190, 0.32) !important;
-  border-radius: 11px !important;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035)) !important;
+.wallet-connect-option {
+  width: 100%;
+  height: 58px;
+  min-height: 58px;
+  margin: 4px 0;
+  padding: 7px 10px;
+  border: 1px solid rgba(140, 155, 190, 0.32);
+  border-radius: 11px;
+  color: #f4f6fb;
+  font-size: 0.98rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035));
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 8px 22px rgba(0, 0, 0, 0.24) !important;
+    0 8px 22px rgba(0, 0, 0, 0.24);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
-.wallet-modal-thirdweb .tw-wallet-select-wallet-button:hover,
-.wallet-modal-thirdweb .tw-select-connect-a-wallet-button:hover,
-.wallet-modal-thirdweb .tw-show-all-wallets-button button:hover {
-  border-color: rgba(130, 170, 255, 0.62) !important;
-  background:
-    linear-gradient(135deg, rgba(120, 150, 255, 0.16), rgba(255, 255, 255, 0.07)) !important;
+.wallet-connect-option:hover:enabled {
+  border-color: rgba(130, 170, 255, 0.62);
+  background: linear-gradient(135deg, rgba(120, 150, 255, 0.16), rgba(255, 255, 255, 0.07));
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.08) inset,
     0 10px 26px rgba(0, 0, 0, 0.28),
-    0 0 18px rgba(90, 130, 255, 0.18) !important;
+    0 0 18px rgba(90, 130, 255, 0.18);
 }
 
-.wallet-modal-thirdweb .tw-get-started-container,
-.wallet-modal-thirdweb div:has(> .tw-get-started-container),
-.wallet-modal-thirdweb div:has(+ div > .tw-get-started-container),
-.wallet-modal-thirdweb div:has(> .tw-get-started-container) + div {
-  display: none !important;
+.wallet-connect-option:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .wallet-modal-setup {
@@ -336,7 +334,7 @@
       max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   }
 
-  .wallet-modal--thirdweb {
+  .wallet-modal--connect {
     --wallet-action-width: calc(100% - 34px);
   }
 

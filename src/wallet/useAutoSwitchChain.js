@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useActiveAccount, useActiveWalletChain, useSwitchActiveWalletChain } from 'thirdweb/react'
+import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { appChain } from '../contracts/config.js'
 import { getTreasuryChain } from '../contracts/treasuryChains.js'
 
@@ -9,43 +9,35 @@ function wrongNetworkError(targetChain = appChain) {
   )
 }
 
-export async function ensureTreasuryChain(networkKey, { wallet, walletChain, switchChain }) {
+export async function ensureTreasuryChain(networkKey, { chainId, switchChain }) {
   const targetChain = getTreasuryChain(networkKey)
   if (!targetChain) {
     throw new Error('Selected network is not configured.')
   }
-  if (!wallet) {
+  if (!switchChain) {
     throw new Error('Connect your wallet first.')
   }
-  if (walletChain?.id === targetChain.id) {
+  if (chainId === targetChain.id) {
     return targetChain
   }
   try {
-    await switchChain(targetChain)
+    await switchChain({ chainId: targetChain.id })
   } catch {
-    throw wrongNetworkError(targetChain)
-  }
-  const activeChain = wallet.getChain?.()
-  if (activeChain?.id && activeChain.id !== targetChain.id) {
     throw wrongNetworkError(targetChain)
   }
   return targetChain
 }
 
-export async function ensureAppChain({ wallet, walletChain, switchChain }) {
-  if (!wallet) {
+export async function ensureAppChain({ chainId, switchChain }) {
+  if (!switchChain) {
     throw new Error('Connect your wallet first.')
   }
-  if (walletChain?.id === appChain.id) {
+  if (chainId === appChain.id) {
     return appChain
   }
   try {
-    await switchChain(appChain)
+    await switchChain({ chainId: appChain.id })
   } catch {
-    throw wrongNetworkError(appChain)
-  }
-  const activeChain = wallet.getChain?.()
-  if (activeChain?.id && activeChain.id !== appChain.id) {
     throw wrongNetworkError(appChain)
   }
   return appChain
@@ -53,31 +45,31 @@ export async function ensureAppChain({ wallet, walletChain, switchChain }) {
 
 /** @deprecated Prefer usePaymentChainSwitch in the presale panel. */
 export function useAutoSwitchChain(enabled = true) {
-  const account = useActiveAccount()
-  const walletChain = useActiveWalletChain()
-  const switchChain = useSwitchActiveWalletChain()
+  const { address } = useAccount()
+  const walletChainId = useChainId()
+  const { switchChainAsync } = useSwitchChain()
   const [isSwitchingChain, setIsSwitchingChain] = useState(false)
   const [switchRejected, setSwitchRejected] = useState(false)
   const inFlightRef = useRef(false)
 
-  const isWrongNetwork = Boolean(enabled && account?.address && walletChain?.id !== appChain.id)
+  const isWrongNetwork = Boolean(enabled && address && walletChainId !== appChain.id)
 
   useEffect(() => {
-    if (!enabled || !account?.address) {
+    if (!enabled || !address) {
       setIsSwitchingChain(false)
       setSwitchRejected(false)
       inFlightRef.current = false
       return undefined
     }
 
-    if (walletChain?.id === appChain.id) {
+    if (walletChainId === appChain.id) {
       setIsSwitchingChain(false)
       setSwitchRejected(false)
       inFlightRef.current = false
       return undefined
     }
 
-    if (inFlightRef.current || switchRejected) {
+    if (inFlightRef.current || switchRejected || !switchChainAsync) {
       return undefined
     }
 
@@ -85,7 +77,7 @@ export function useAutoSwitchChain(enabled = true) {
     inFlightRef.current = true
     setIsSwitchingChain(true)
 
-    switchChain(appChain)
+    switchChainAsync({ chainId: appChain.id })
       .then(() => {
         if (!cancelled) {
           setSwitchRejected(false)
@@ -106,14 +98,17 @@ export function useAutoSwitchChain(enabled = true) {
     return () => {
       cancelled = true
     }
-  }, [account?.address, enabled, switchChain, walletChain?.id])
+  }, [address, enabled, switchChainAsync, switchRejected, walletChainId])
 
   const requestChainSwitch = useCallback(async () => {
+    if (!switchChainAsync) {
+      throw wrongNetworkError(appChain)
+    }
     setSwitchRejected(false)
     inFlightRef.current = true
     setIsSwitchingChain(true)
     try {
-      await switchChain(appChain)
+      await switchChainAsync({ chainId: appChain.id })
       setSwitchRejected(false)
     } catch {
       setSwitchRejected(true)
@@ -122,7 +117,7 @@ export function useAutoSwitchChain(enabled = true) {
       inFlightRef.current = false
       setIsSwitchingChain(false)
     }
-  }, [switchChain])
+  }, [switchChainAsync])
 
   return {
     appChain,

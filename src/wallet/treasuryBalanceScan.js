@@ -1,5 +1,6 @@
-import { eth_getBalance, getRpcClient, readContract } from 'thirdweb'
-import { toWei } from 'thirdweb/utils'
+import { parseEther } from 'viem'
+import { getBalance, readContract } from 'viem/actions'
+import erc20Abi from '../contracts/abis/erc20.json'
 import { appChain } from '../contracts/config.js'
 import {
   getConfiguredTreasuryNetworks,
@@ -9,8 +10,10 @@ import {
   isTreasuryMethodConfigured,
 } from '../contracts/treasuryChains.js'
 import { isTreasuryPaymentMethod, TREASURY_PAYMENT_METHODS } from '../lib/paymentMethods.js'
+import { isWalletConfigured } from './walletMetadata.js'
 import { formatTokenAmount, getErc20Contract } from './presaleContract.js'
-import { thirdwebClient } from './thirdwebClient.js'
+import { getDefaultAppRpc } from './chains.js'
+import { getPublicClient } from './viemClients.js'
 
 const BNB_GAS_RESERVE = '0.00005'
 const ETH_GAS_RESERVE_BY_NETWORK = {
@@ -36,7 +39,7 @@ function withTimeout(promise, timeoutMs = BALANCE_FETCH_TIMEOUT_MS) {
 }
 
 function spendableNativeBalance(balanceWei, reserveHuman) {
-  const reserveWei = toWei(reserveHuman)
+  const reserveWei = parseEther(reserveHuman)
   const spendableWei = balanceWei > reserveWei ? balanceWei - reserveWei : 0n
   const formatted = formatTokenAmount(spendableWei, 18)
   const n = Number(formatted)
@@ -90,18 +93,20 @@ async function readTokenDecimals(tokenContract, networkKey) {
   if (networkKey === 'bsc') {
     return BSC_STABLECOIN_DECIMALS
   }
+  const client = getPublicClient(tokenContract.chainId)
   return Number(
     await withTimeout(
-      readContract({
-        contract: tokenContract,
-        method: 'function decimals() view returns (uint8)',
+      readContract(client, {
+        address: tokenContract.address,
+        abi: erc20Abi,
+        functionName: 'decimals',
       }),
     ),
   )
 }
 
 async function fetchSpendableTreasuryBalance(accountAddress, paymentMethod, networkKey) {
-  if (!accountAddress || !thirdwebClient || !networkKey) {
+  if (!accountAddress || !isWalletConfigured || !networkKey) {
     return 0
   }
 
@@ -111,8 +116,10 @@ async function fetchSpendableTreasuryBalance(accountAddress, paymentMethod, netw
       if (!chain) {
         return 0
       }
-      const rpc = getRpcClient({ client: thirdwebClient, chain })
-      const balanceWei = await withTimeout(eth_getBalance(rpc, { address: accountAddress }))
+      const client = getPublicClient(chain.id)
+      const balanceWei = await withTimeout(
+        getBalance(client, { address: accountAddress }),
+      )
       return spendableNativeBalance(balanceWei, ethGasReserveForNetwork(networkKey))
     }
 
@@ -124,7 +131,7 @@ async function fetchSpendableTreasuryBalance(accountAddress, paymentMethod, netw
 
     if (networkKey === 'bsc') {
       const balanceWei = await withTimeout(
-        readErc20BalanceViaRpc(appChain.rpc, tokenAddress, accountAddress),
+        readErc20BalanceViaRpc(getDefaultAppRpc(appChain), tokenAddress, accountAddress),
       )
       const formatted = formatTokenAmount(balanceWei, BSC_STABLECOIN_DECIMALS)
       const n = Number(formatted)
@@ -138,13 +145,15 @@ async function fetchSpendableTreasuryBalance(accountAddress, paymentMethod, netw
       return 0
     }
 
+    const client = getPublicClient(tokenContract.chainId)
     const [decimals, balanceWei] = await Promise.all([
       readTokenDecimals(tokenContract, networkKey),
       withTimeout(
-        readContract({
-          contract: tokenContract,
-          method: 'function balanceOf(address) view returns (uint256)',
-          params: [accountAddress],
+        readContract(client, {
+          address: tokenContract.address,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [accountAddress],
         }),
       ),
     ])
@@ -183,11 +192,11 @@ export async function getSpendableTreasuryBalance(accountAddress, paymentMethod,
 }
 
 async function fetchSpendableBnbBalance(accountAddress) {
-  if (!accountAddress || !thirdwebClient) {
+  if (!accountAddress || !isWalletConfigured) {
     return 0
   }
-  const rpc = getRpcClient({ client: thirdwebClient, chain: appChain })
-  const balanceWei = await withTimeout(eth_getBalance(rpc, { address: accountAddress }))
+  const client = getPublicClient(appChain.id)
+  const balanceWei = await withTimeout(getBalance(client, { address: accountAddress }))
   return spendableNativeBalance(balanceWei, BNB_GAS_RESERVE)
 }
 
@@ -254,7 +263,7 @@ export function getCachedSpendableBalance(
 }
 
 export async function warmPaymentBalanceCache(accountAddress, walletChainId) {
-  if (!accountAddress || !thirdwebClient) {
+  if (!accountAddress || !isWalletConfigured) {
     return
   }
 

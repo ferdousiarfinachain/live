@@ -1,0 +1,18 @@
+/**
+ * Reown AppKit connect list tweaks.
+ * includeWalletIds does not remove the WalletConnect QR row or "recent" wallets.
+ */
+
+w3m-list-wallet[data-testid='wallet-selector-walletconnect'],
+w3m-list-wallet[name='WalletConnect'] {
+  display: none !important;
+}
+
+w3m-list-wallet[data-testid='wallet-selector-injected'],
+w3m-list-wallet[name='Browser Wallet'] {
+  display: none !important;
+}
+
+wui-ux-by-reown {
+  display: none !important;
+}

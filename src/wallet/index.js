@@ -4,12 +4,14 @@ export { default as PurchaseSuccessModal } from './PurchaseSuccessModal'
 export { useWalletSession } from './useWalletSession'
 export { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
 export {
-  thirdwebClient,
   appChains,
-  defaultChain,
-  supportedWallets,
   appMetadata,
-} from './thirdwebClient'
+  defaultChain,
+  isWalletConfigured,
+  reownProjectId,
+  requiredChainId,
+  requiredNetworkLabel,
+} from './walletMetadata'
 export { usePresaleBuy, usePresaleQuote } from './usePresaleBuy.js'
 export { usePresaleClaim } from './usePresaleClaim.js'
 export { usePaymentBalance } from './usePaymentBalance.js'
@@ -17,3 +19,4 @@ export { useAutoSwitchChain, ensureAppChain } from './useAutoSwitchChain.js'
 export { usePaymentChainSwitch } from './usePaymentChainSwitch.js'
 export { useTreasuryNetworkDetect } from './useTreasuryNetworkDetect.js'
 export { prefetchPresaleStats, usePresaleStats } from './usePresaleStats.js'
+export { WALLET_ORDER } from './Order.js'

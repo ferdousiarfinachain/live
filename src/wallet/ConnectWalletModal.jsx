@@ -1,156 +1,166 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { ConnectEmbed, useActiveAccount, useSwitchActiveWalletChain } from 'thirdweb/react'
-import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
-import {
-  appChains,
-  appMetadata,
-  defaultChain,
-  supportedWallets,
-  thirdwebClient,
-} from './thirdwebClient'
+import { useAppKit, useAppKitState } from '@reown/appkit/react'
+import { useAccount, useSwitchChain } from 'wagmi'
+import { defaultChain, isWalletConfigured } from './walletMetadata.js'
+import { sanitizeRecentWallets } from './walletRecentSanitize.js'
 import './ConnectWalletModal.css'
 
 export const MODAL_CLOSE_MS = 520
 
-const METAMASK_DOWNLOAD_URL =
-  import.meta.env.VITE_METAMASK_DOWNLOAD_URL || 'https://metamask.io/download/'
+function ReownConnectOpener({ isOpen, onClose }) {
+  const { open, close } = useAppKit()
+  const { open: appKitOpen } = useAppKitState()
+  const { isConnected } = useAccount()
+  const { switchChainAsync } = useSwitchChain()
+  const onCloseRef = useRef(onClose)
+  const prevIsOpenRef = useRef(false)
+  const prevAppKitOpenRef = useRef(false)
+  const openedThisSessionRef = useRef(false)
 
-export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
-  const [isClosing, setIsClosing] = useState(false)
-  const closeTimerRef = useRef(null)
-  const switchChain = useSwitchActiveWalletChain()
-  const account = useActiveAccount()
-  const isConnected = Boolean(account?.address)
-  const visible = isOpen || isClosing
+  onCloseRef.current = onClose
 
   useEffect(() => {
-    if (isOpen && isConnected) {
-      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
-      setIsClosing(false)
+    const wasParentOpen = prevIsOpenRef.current
+    prevIsOpenRef.current = isOpen
+
+    if (!isOpen) {
+      openedThisSessionRef.current = false
+      return
+    }
+
+    if (isConnected || openedThisSessionRef.current) {
+      return
+    }
+
+    if (!wasParentOpen) {
+      openedThisSessionRef.current = true
+      sanitizeRecentWallets()
+      open({ view: 'Connect' }).catch(() => {
+        openedThisSessionRef.current = false
+        onCloseRef.current()
+      })
+    }
+  }, [isOpen, isConnected, open])
+
+  useEffect(() => {
+    if (!isOpen || !isConnected) {
+      return
+    }
+
+    if (switchChainAsync) {
+      switchChainAsync({ chainId: defaultChain.id }).catch(() => {
+        /* user can approve network switch later */
+      })
+    }
+
+    openedThisSessionRef.current = false
+  }, [isConnected, isOpen, switchChainAsync])
+
+  useEffect(() => {
+    const wasAppKitOpen = prevAppKitOpenRef.current
+    prevAppKitOpenRef.current = appKitOpen
+
+    if (!isOpen || isConnected || !openedThisSessionRef.current) {
+      return
+    }
+
+    if (wasAppKitOpen && !appKitOpen) {
+      openedThisSessionRef.current = false
+      onCloseRef.current()
+    }
+  }, [appKitOpen, isConnected, isOpen])
+
+  useEffect(() => {
+    if (isOpen) {
+      return undefined
+    }
+
+    if (!appKitOpen) {
+      return undefined
+    }
+
+    close().catch(() => {})
+    openedThisSessionRef.current = false
+    return undefined
+  }, [appKitOpen, close, isOpen])
+
+  return null
+}
+
+export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
+  const { isConnected } = useAccount()
+  const { close } = useAppKit()
+
+  // Parent sets isOpen=false before ReownConnectOpener can — otherwise disconnect reopens the modal.
+  useEffect(() => {
+    if (!isConnected) {
+      return
+    }
+    close().catch(() => {})
+    if (isOpen) {
       onClose()
     }
-  }, [isOpen, isConnected, onClose])
+  }, [close, isConnected, isOpen, onClose])
 
-  useLayoutEffect(() => {
-    if (!visible) return undefined
-
-    lockBodyScroll()
-
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') beginClose()
+  useEffect(() => {
+    if (isConnected) {
+      return
     }
-    window.addEventListener('keydown', onKeyDown)
+    close().catch(() => {})
+  }, [close, isConnected])
 
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      unlockBodyScroll()
-    }
-  }, [visible])
-
-  useEffect(() => () => {
-    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
-  }, [])
-
-  function beginClose() {
-    if (!isOpen || isClosing) return
-    setIsClosing(true)
-    closeTimerRef.current = window.setTimeout(() => {
-      setIsClosing(false)
-      onClose()
-    }, MODAL_CLOSE_MS)
+  if (!isOpen || isConnected) {
+    return null
   }
 
-  function closeAfterConnect() {
-    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
-    setIsClosing(false)
-    switchChain(defaultChain).catch(() => {
-      /* user can approve network switch later */
-    })
-    onClose()
+  if (isWalletConfigured) {
+    return <ReownConnectOpener isOpen={isOpen} onClose={onClose} />
   }
-
-  if (!visible || (isOpen && isConnected)) return null
 
   return createPortal(
-    <div
-      className={`wallet-modal-backdrop ${isClosing ? 'wallet-modal-backdrop--closing' : ''}`}
-      onClick={beginClose}
-      role="presentation"
-    >
+    <div className="wallet-modal-backdrop" onClick={onClose} role="presentation">
       <div
-        className={`wallet-modal wallet-modal--thirdweb ${isClosing ? 'wallet-modal--closing' : ''}`}
+        className="wallet-modal wallet-modal--connect"
         role="dialog"
         aria-modal="true"
-        aria-label="Connect wallet"
+        aria-label="Connect wallet setup"
         onClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
           className="wallet-modal-close"
-          onClick={beginClose}
-          aria-label="Close connect wallet modal"
+          onClick={onClose}
+          aria-label="Close connect wallet setup"
         >
           ×
         </button>
-
-        {!thirdwebClient ? (
-          <div className="wallet-modal-setup">
-            <h2 className="wallet-modal-title">Setup required</h2>
-            <p className="wallet-modal-setup-text">
-              Add your thirdweb <strong>Client ID</strong> to <code>.env</code>:
-            </p>
-            <pre className="wallet-modal-setup-code">VITE_THIRDWEB_CLIENT_ID=your_client_id</pre>
-            <p className="wallet-modal-setup-text">
-              Create one free at{' '}
-              <a href="https://thirdweb.com/dashboard" target="_blank" rel="noopener noreferrer">
-                thirdweb.com/dashboard
-              </a>
-              , then restart <code>npm run dev</code>.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="wallet-modal-header-copy">
-              <h2 className="wallet-modal-title">Connect Wallet</h2>
-              <p className="wallet-modal-subtitle">
-                If you already have a wallet, select it from the options below. If you don&apos;t
-                have a wallet, download{' '}
-                <a
-                  href={METAMASK_DOWNLOAD_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="wallet-modal-link"
-                >
-                  MetaMask
-                </a>{' '}
-                to get started.
-              </p>
-            </div>
-            <ConnectEmbed
-              client={thirdwebClient}
-              wallets={supportedWallets}
-              chains={appChains}
-              chain={defaultChain}
-              appMetadata={appMetadata}
-              theme="dark"
-              className="wallet-modal-thirdweb"
-              showThirdwebBranding={false}
-              onConnect={closeAfterConnect}
-            />
-          </>
-        )}
-
-        <button
-          type="button"
-          className="wallet-modal-footer-btn"
-          onClick={() => {
-            beginClose()
-            onNoWallet?.()
-          }}
-        >
-          I don&apos;t have a wallet
-        </button>
+        <div className="wallet-modal-setup">
+          <h2 className="wallet-modal-title">Setup required</h2>
+          <p className="wallet-modal-setup-text">
+            Add your Reown <strong>Project ID</strong> to <code>.env</code>:
+          </p>
+          <pre className="wallet-modal-setup-code">VITE_REOWN_PROJECT_ID=your_project_id</pre>
+          <p className="wallet-modal-setup-text">
+            Create one free at{' '}
+            <a href="https://cloud.reown.com" target="_blank" rel="noopener noreferrer">
+              cloud.reown.com
+            </a>
+            , then restart <code>npm run dev</code>.
+          </p>
+        </div>
+        {onNoWallet ? (
+          <button
+            type="button"
+            className="wallet-modal-footer-btn"
+            onClick={() => {
+              onClose()
+              onNoWallet()
+            }}
+          >
+            I don&apos;t have a wallet
+          </button>
+        ) : null}
       </div>
     </div>,
     document.body,

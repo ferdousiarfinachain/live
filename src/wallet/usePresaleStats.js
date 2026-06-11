@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react'
-import { readContract } from 'thirdweb'
-import { chainId, isPresaleConfigured, presaleContractAddress } from '../contracts/config.js'
+import { readContract } from 'wagmi/actions'
+import { chainId, isPresaleConfigured, presaleAbiExport, presaleContractAddress } from '../contracts/config.js'
 import {
   formatTokenAmount,
   formatUsdTokenPriceLabel,
@@ -8,6 +8,7 @@ import {
   readPresaleTokenPriceUsd,
   readSaleTokenDecimals,
 } from './presaleContract.js'
+import { wagmiConfig } from './wagmiConfig.js'
 
 const REFRESH_MS = 15_000
 const PRESALE_USD_GOAL = 1_000_000
@@ -152,25 +153,30 @@ async function fetchPresaleStats() {
     const nowSec = Math.floor(Date.now() / 1000)
     const [isSaleActive, currentStage, startTime, endTime, totalTokensSold, saleTokenDecimals, tokenPriceUsd] =
       await Promise.all([
-        readContract({
-          contract: presaleContract,
-          method: 'function isSaleActive() view returns (bool)',
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'isSaleActive',
         }),
-        readContract({
-          contract: presaleContract,
-          method: 'function currentStage() view returns (uint8)',
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'currentStage',
         }),
-        readContract({
-          contract: presaleContract,
-          method: 'function startTime() view returns (uint256)',
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'startTime',
         }),
-        readContract({
-          contract: presaleContract,
-          method: 'function endTime() view returns (uint256)',
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'endTime',
         }),
-        readContract({
-          contract: presaleContract,
-          method: 'function totalTokensSold() view returns (uint256)',
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'totalTokensSold',
         }),
         readSaleTokenDecimals(presaleContract),
         readPresaleTokenPriceUsd(),

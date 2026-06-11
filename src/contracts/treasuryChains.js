@@ -1,35 +1,21 @@
-import { defineChain } from 'thirdweb'
-import { arbitrum, avalanche, base, ethereum, optimism, polygon } from 'thirdweb/chains'
+import {
+  arbitrum,
+  avalanche,
+  base,
+  bscTreasuryChain,
+  ethereum,
+  optimism,
+  polygon,
+} from '../wallet/chains.js'
 import { isTreasuryPaymentMethod, TREASURY_PAYMENT_METHODS } from '../lib/paymentMethods.js'
 import { isSupabaseConfigured } from '../lib/supabaseClient.js'
-
-const BSC_MAINNET_RPC = (
-  import.meta.env.VITE_BSC_MAINNET_RPC || 'https://bsc-dataseed.binance.org'
-)
-  .toString()
-  .trim()
 
 function envAddress(name) {
   const raw = (import.meta.env[name] ?? '').toString().trim()
   return raw || null
 }
 
-export const bscTreasuryChain = defineChain({
-  id: 56,
-  name: 'BNB Smart Chain',
-  nativeCurrency: {
-    name: 'BNB',
-    symbol: 'BNB',
-    decimals: 18,
-  },
-  rpc: BSC_MAINNET_RPC,
-  blockExplorers: [
-    {
-      name: 'BscScan',
-      url: 'https://bscscan.com',
-    },
-  ],
-})
+export { bscTreasuryChain }
 
 /** Native ETH — Ethereum, Arbitrum, Base, Optimism */
 export const ETH_NATIVE_TREASURY_NETWORKS = [

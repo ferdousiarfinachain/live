@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
-import { prepareContractCall, readContract, sendAndConfirmTransaction } from 'thirdweb'
-import { useActiveAccount, useActiveWallet, useActiveWalletChain, useSwitchActiveWalletChain } from 'thirdweb/react'
-import { isPresaleConfigured } from '../contracts/config.js'
+import { readContract, waitForTransactionReceipt, writeContract } from 'wagmi/actions'
+import { useAccount, useChainId, useSwitchChain } from 'wagmi'
+import { isPresaleConfigured, presaleAbiExport } from '../contracts/config.js'
 import { ensureAppChain } from './useAutoSwitchChain.js'
-import { formatTokenAmount, getPresaleContract, readSaleTokenDecimals } from './presaleContract.js'
+import {
+  formatTokenAmount,
+  getPresaleContract,
+  readSaleTokenDecimals,
+} from './presaleContract.js'
+import { wagmiConfig } from './wagmiConfig.js'
 
 function formatClaimAmount(amountWei, decimals) {
   if (!amountWei || amountWei <= 0n) {
@@ -51,10 +56,9 @@ function formatClaimError(error) {
 }
 
 export function usePresaleClaim(enabled = true) {
-  const account = useActiveAccount()
-  const wallet = useActiveWallet()
-  const walletChain = useActiveWalletChain()
-  const switchChain = useSwitchActiveWalletChain()
+  const { address } = useAccount()
+  const walletChainId = useChainId()
+  const { switchChainAsync } = useSwitchChain()
 
   const [purchasedDisplay, setPurchasedDisplay] = useState('0')
   const [claimableDisplay, setClaimableDisplay] = useState('0')
@@ -97,17 +101,20 @@ export function usePresaleClaim(enabled = true) {
     try {
       const nowSec = Math.floor(Date.now() / 1000)
       const [finalized, tgeTime, saleToken, saleTokenDecimals] = await Promise.all([
-        readContract({
-          contract: presaleContract,
-          method: 'function saleFinalized() view returns (bool)',
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'saleFinalized',
         }),
-        readContract({
-          contract: presaleContract,
-          method: 'function tgeTime() view returns (uint256)',
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'tgeTime',
         }),
-        readContract({
-          contract: presaleContract,
-          method: 'function token() view returns (address)',
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'token',
         }),
         readSaleTokenDecimals(presaleContract),
       ])
@@ -117,7 +124,7 @@ export function usePresaleClaim(enabled = true) {
       setClaimStarted(tgeSec > 0 && nowSec >= tgeSec)
       setTokenAddress(String(saleToken))
 
-      if (!account?.address) {
+      if (!address) {
         setPurchasedDisplay('0')
         setClaimableDisplay('0')
         setClaimedDisplay('0')
@@ -126,20 +133,23 @@ export function usePresaleClaim(enabled = true) {
       }
 
       const [purchasedWei, claimableAmountWei, claimedWei] = await Promise.all([
-        readContract({
-          contract: presaleContract,
-          method: 'function purchasedBy(address account) view returns (uint256)',
-          params: [account.address],
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'purchasedBy',
+          args: [address],
         }),
-        readContract({
-          contract: presaleContract,
-          method: 'function claimableBy(address account) view returns (uint256)',
-          params: [account.address],
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'claimableBy',
+          args: [address],
         }),
-        readContract({
-          contract: presaleContract,
-          method: 'function claimedBy(address account) view returns (uint256)',
-          params: [account.address],
+        readContract(wagmiConfig, {
+          ...presaleContract,
+          abi: presaleAbiExport,
+          functionName: 'claimedBy',
+          args: [address],
         }),
       ])
 
@@ -155,7 +165,7 @@ export function usePresaleClaim(enabled = true) {
     } finally {
       setIsLoading(false)
     }
-  }, [account?.address, enabled])
+  }, [address, enabled])
 
   useEffect(() => {
     refresh()
@@ -163,7 +173,7 @@ export function usePresaleClaim(enabled = true) {
 
   const claim = useCallback(async () => {
     setClaimError('')
-    if (!account) {
+    if (!address) {
       throw new Error('Connect your wallet first.')
     }
     if (claimableWei <= 0n) {
@@ -177,14 +187,14 @@ export function usePresaleClaim(enabled = true) {
 
     setIsClaiming(true)
     try {
-      await ensureAppChain({ wallet, walletChain, switchChain })
+      await ensureAppChain({ chainId: walletChainId, switchChain: switchChainAsync })
 
-      const tx = prepareContractCall({
-        contract: presaleContract,
-        method: 'function claim()',
-        params: [],
+      const hash = await writeContract(wagmiConfig, {
+        ...presaleContract,
+        abi: presaleAbiExport,
+        functionName: 'claim',
       })
-      const receipt = await sendAndConfirmTransaction({ account, transaction: tx })
+      const receipt = await waitForTransactionReceipt(wagmiConfig, { hash })
       await refresh()
       return { transactionHash: receipt.transactionHash }
     } catch (error) {
@@ -194,10 +204,10 @@ export function usePresaleClaim(enabled = true) {
     } finally {
       setIsClaiming(false)
     }
-  }, [account, claimableWei, refresh, switchChain, wallet, walletChain?.id])
+  }, [address, claimableWei, refresh, switchChainAsync, walletChainId])
 
   const canClaim =
-    Boolean(account?.address) &&
+    Boolean(address) &&
     saleFinalized &&
     claimStarted &&
     claimableWei > 0n &&
