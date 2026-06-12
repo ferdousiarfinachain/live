@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useAppKit, useAppKitState } from '@reown/appkit/react'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { defaultChain, isWalletConfigured } from './walletMetadata.js'
-import { sanitizeRecentWallets } from './walletRecentSanitize.js'
+import { clearRecentWallets } from './walletRecentSanitize.js'
 import './ConnectWalletModal.css'
 
 export const MODAL_CLOSE_MS = 520
@@ -35,7 +35,7 @@ function ReownConnectOpener({ isOpen, onClose }) {
 
     if (!wasParentOpen) {
       openedThisSessionRef.current = true
-      sanitizeRecentWallets()
+      clearRecentWallets()
       open({ view: 'Connect' }).catch(() => {
         openedThisSessionRef.current = false
         onCloseRef.current()

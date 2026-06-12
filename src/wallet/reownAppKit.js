@@ -3,7 +3,7 @@ import { ModalController, OptionsController, RouterController } from '@reown/app
 import { wagmiChains } from './chains.js'
 import { WALLET_ORDER } from './Order.js'
 import './reownModalOverrides.css'
-import { sanitizeRecentWallets } from './walletRecentSanitize.js'
+import { clearRecentWallets } from './walletRecentSanitize.js'
 import { wagmiAdapter } from './wagmiConfig.js'
 import { getAppMetadata, reownProjectId } from './walletMetadata.js'
 
@@ -189,6 +189,7 @@ function installReownModalUiPatches() {
 
   ModalController.subscribeKey('open', (isOpen) => {
     if (isOpen) {
+      clearRecentWallets()
       scheduleModalOpenRefreshes()
     }
   })
@@ -207,7 +208,7 @@ function disableReownBranding() {
 }
 
 if (reownProjectId) {
-  sanitizeRecentWallets(WALLET_ORDER)
+  clearRecentWallets()
   installReownModalUiPatches()
 
   appKitModal = createAppKit({
