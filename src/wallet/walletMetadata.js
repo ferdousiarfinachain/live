@@ -34,7 +34,7 @@ export function getAppMetadata() {
     name: 'Novex Labs',
     description: 'Connect your wallet to Novex Labs',
     url: CANONICAL_APP_URL,
-    icons: [`${CANONICAL_APP_URL}/fevicon2.svg`],
+    icons: [`${CANONICAL_APP_URL}/social-preview.png`],
   }
 }
 
