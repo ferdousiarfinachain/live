@@ -120,8 +120,12 @@ function patchReownModal(modal) {
         }
       }
 
+      w3m-list-wallet[data-testid='wallet-selector-walletconnect'],
       w3m-list-wallet[data-testid='wallet-selector-injected'],
-      w3m-list-wallet[name='Browser Wallet'] {
+      w3m-list-wallet[name='Browser Wallet'],
+      w3m-list-wallet[name='WalletConnect'],
+      wui-list-wallet[name='WalletConnect'],
+      wui-ux-by-reown {
         display: none !important;
       }
     `

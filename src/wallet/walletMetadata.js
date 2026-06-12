@@ -11,12 +11,22 @@ export const defaultChain = appChain
 export const requiredNetworkLabel = appChain.name || 'BNB Smart Chain'
 export const requiredChainId = appChain.id
 
+const CANONICAL_APP_URL = 'https://www.novexlabs.xyz'
+
+function resolveAppOrigin() {
+  if (typeof window === 'undefined') {
+    return CANONICAL_APP_URL
+  }
+  const { origin } = window.location
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+    return origin
+  }
+  return CANONICAL_APP_URL
+}
+
 export const appMetadata = {
   name: 'Novex Labs',
   description: 'Connect your wallet to Novex Labs',
-  url:
-    typeof window !== 'undefined' && window.location?.origin
-      ? window.location.origin
-      : 'http://localhost:5173',
-  icons: ['https://walletconnect.com/walletconnect-logo.png'],
+  url: resolveAppOrigin(),
+  icons: [`${resolveAppOrigin().replace(/\/$/, '')}/social-preview.png`],
 }
