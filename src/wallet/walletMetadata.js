@@ -11,22 +11,31 @@ export const defaultChain = appChain
 export const requiredNetworkLabel = appChain.name || 'BNB Smart Chain'
 export const requiredChainId = appChain.id
 
-const CANONICAL_APP_URL = 'https://www.novexlabs.xyz'
+/** Must match Reown allowlist + the exact URL users load on mobile (www). */
+export const CANONICAL_APP_URL = 'https://www.novexlabs.xyz'
 
-function resolveAppOrigin() {
-  if (typeof window === 'undefined') {
-    return CANONICAL_APP_URL
-  }
-  const { origin } = window.location
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
-    return origin
-  }
-  return CANONICAL_APP_URL
+function isLocalDevOrigin(origin) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
 }
 
-export const appMetadata = {
-  name: 'Novex Labs',
-  description: 'Connect your wallet to Novex Labs',
-  url: resolveAppOrigin(),
-  icons: [`${resolveAppOrigin().replace(/\/$/, '')}/social-preview.png`],
+/** Build metadata at connect time so url always matches Verify API expectations. */
+export function getAppMetadata() {
+  if (typeof window !== 'undefined' && isLocalDevOrigin(window.location.origin)) {
+    const origin = window.location.origin.replace(/\/$/, '')
+    return {
+      name: 'Novex Labs',
+      description: 'Connect your wallet to Novex Labs',
+      url: origin,
+      icons: [`${origin}/social-preview.png`],
+    }
+  }
+
+  return {
+    name: 'Novex Labs',
+    description: 'Connect your wallet to Novex Labs',
+    url: CANONICAL_APP_URL,
+    icons: [`${CANONICAL_APP_URL}/fevicon2.svg`],
+  }
 }
+
+export const appMetadata = getAppMetadata()

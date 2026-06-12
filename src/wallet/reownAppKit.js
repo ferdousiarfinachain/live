@@ -5,7 +5,7 @@ import { WALLET_ORDER } from './Order.js'
 import './reownModalOverrides.css'
 import { sanitizeRecentWallets } from './walletRecentSanitize.js'
 import { wagmiAdapter } from './wagmiConfig.js'
-import { appMetadata, reownProjectId } from './walletMetadata.js'
+import { getAppMetadata, reownProjectId } from './walletMetadata.js'
 
 export let appKitModal
 
@@ -214,7 +214,7 @@ if (reownProjectId) {
     adapters: [wagmiAdapter],
     networks: wagmiChains,
     projectId: reownProjectId,
-    metadata: appMetadata,
+    metadata: getAppMetadata(),
     themeMode: 'dark',
     featuredWalletIds: WALLET_ORDER,
     allWallets: 'SHOW',
