@@ -26,10 +26,8 @@ const BALANCE_FETCH_TIMEOUT_MS = 2_500
 const BALANCE_CACHE_TTL_MS = 12_000
 const BSC_STABLECOIN_DECIMALS = 18
 const bestTreasuryBalanceInFlight = new Map()
-const bestTreasuryBalanceCache = new Map()
 const spendableBalanceCache = new Map()
 const spendableBalanceInFlight = new Map()
-const tokenDecimalsCache = new Map()
 
 function withTimeout(promise, timeoutMs = BALANCE_FETCH_TIMEOUT_MS) {
   return Promise.race([
@@ -54,26 +52,6 @@ function ethGasReserveForNetwork(networkKey) {
 
 function spendableCacheKey(accountAddress, paymentMethod, networkKey) {
   return `${accountAddress.toLowerCase()}|${paymentMethod}|${networkKey}`
-}
-
-function bestTreasuryCacheKey(accountAddress, paymentMethod, walletChainId) {
-  return `${accountAddress.toLowerCase()}|${paymentMethod}|${walletChainId ?? ''}`
-}
-
-function readBestTreasuryCache(cacheKey) {
-  const entry = bestTreasuryBalanceCache.get(cacheKey)
-  if (!entry) {
-    return null
-  }
-  if (Date.now() - entry.at > BALANCE_CACHE_TTL_MS) {
-    bestTreasuryBalanceCache.delete(cacheKey)
-    return null
-  }
-  return entry.value
-}
-
-function writeBestTreasuryCache(cacheKey, value) {
-  bestTreasuryBalanceCache.set(cacheKey, { value, at: Date.now() })
 }
 
 function readSpendableCache(cacheKey) {
@@ -115,13 +93,8 @@ async function readTokenDecimals(tokenContract, networkKey) {
   if (networkKey === 'bsc') {
     return BSC_STABLECOIN_DECIMALS
   }
-  const decimalsCacheKey = `${tokenContract.chainId}|${tokenContract.address.toLowerCase()}`
-  const cachedDecimals = tokenDecimalsCache.get(decimalsCacheKey)
-  if (cachedDecimals !== undefined) {
-    return cachedDecimals
-  }
   const client = getPublicClient(tokenContract.chainId)
-  const decimals = Number(
+  return Number(
     await withTimeout(
       readContract(client, {
         address: tokenContract.address,
@@ -130,8 +103,6 @@ async function readTokenDecimals(tokenContract, networkKey) {
       }),
     ),
   )
-  tokenDecimalsCache.set(decimalsCacheKey, decimals)
-  return decimals
 }
 
 async function fetchSpendableTreasuryBalance(accountAddress, paymentMethod, networkKey) {
@@ -195,18 +166,11 @@ async function fetchSpendableTreasuryBalance(accountAddress, paymentMethod, netw
   }
 }
 
-export async function getSpendableTreasuryBalance(
-  accountAddress,
-  paymentMethod,
-  networkKey,
-  { bypassCache = false } = {},
-) {
+export async function getSpendableTreasuryBalance(accountAddress, paymentMethod, networkKey) {
   const cacheKey = spendableCacheKey(accountAddress, paymentMethod, networkKey)
-  if (!bypassCache) {
-    const cached = readSpendableCache(cacheKey)
-    if (cached !== null) {
-      return cached
-    }
+  const cached = readSpendableCache(cacheKey)
+  if (cached !== null) {
+    return cached
   }
 
   const pending = spendableBalanceInFlight.get(cacheKey)
@@ -236,13 +200,11 @@ async function fetchSpendableBnbBalance(accountAddress) {
   return spendableNativeBalance(balanceWei, BNB_GAS_RESERVE)
 }
 
-export async function getSpendableBnbBalance(accountAddress, { bypassCache = false } = {}) {
+export async function getSpendableBnbBalance(accountAddress) {
   const cacheKey = spendableCacheKey(accountAddress, 'BNB', 'bsc')
-  if (!bypassCache) {
-    const cached = readSpendableCache(cacheKey)
-    if (cached !== null) {
-      return cached
-    }
+  const cached = readSpendableCache(cacheKey)
+  if (cached !== null) {
+    return cached
   }
 
   const pending = spendableBalanceInFlight.get(cacheKey)
@@ -270,26 +232,11 @@ function getBestCachedSpendableBalance(accountAddress, paymentMethod) {
     const cached = readSpendableCache(
       spendableCacheKey(accountAddress, paymentMethod, network.key),
     )
-    if (cached !== null && cached > 0 && (bestBalance === null || cached > bestBalance)) {
+    if (cached !== null && (bestBalance === null || cached > bestBalance)) {
       bestBalance = cached
     }
   }
   return bestBalance
-}
-
-export function getCachedBestTreasuryBalance(accountAddress, paymentMethod, walletChainId) {
-  if (!accountAddress || !isTreasuryPaymentMethod(paymentMethod)) {
-    return null
-  }
-
-  const cachedBest = readBestTreasuryCache(
-    bestTreasuryCacheKey(accountAddress, paymentMethod, walletChainId),
-  )
-  if (cachedBest && cachedBest.balance > 0) {
-    return cachedBest.balance
-  }
-
-  return getBestCachedSpendableBalance(accountAddress, paymentMethod)
 }
 
 export function getCachedSpendableBalance(
@@ -313,6 +260,10 @@ export function getCachedSpendableBalance(
     )
   }
   return getBestCachedSpendableBalance(accountAddress, paymentMethod)
+}
+
+export function getCachedBestTreasuryBalance(accountAddress, paymentMethod, walletChainId) {
+  return getCachedSpendableBalance(accountAddress, paymentMethod, walletChainId)
 }
 
 export async function warmPaymentBalanceCache(accountAddress, walletChainId) {
@@ -344,13 +295,11 @@ export function findTreasuryNetworkByChainId(paymentMethod, chainId) {
   )
 }
 
-async function scanTreasuryBalances(accountAddress, paymentMethod, networks, bypassCache = false) {
+async function scanTreasuryBalances(accountAddress, paymentMethod, networks) {
   const balanceResults = await Promise.allSettled(
     networks.map(async (network) => ({
       networkKey: network.key,
-      balance: await getSpendableTreasuryBalance(accountAddress, paymentMethod, network.key, {
-        bypassCache,
-      }),
+      balance: await getSpendableTreasuryBalance(accountAddress, paymentMethod, network.key),
     })),
   )
 
@@ -393,66 +342,34 @@ export async function detectBestTreasuryNetwork(accountAddress, paymentMethod, w
   return networkKey
 }
 
-async function resolveBestTreasuryBalance(
-  accountAddress,
-  paymentMethod,
-  walletChainId,
-  bypassCache = false,
-) {
-  const cacheKey = bestTreasuryCacheKey(accountAddress, paymentMethod, walletChainId)
-  if (!bypassCache) {
-    const cached = readBestTreasuryCache(cacheKey)
-    if (cached) {
-      return cached
-    }
-  }
-
+async function resolveBestTreasuryBalance(accountAddress, paymentMethod, walletChainId) {
   const networks = getConfiguredTreasuryNetworks(paymentMethod)
   if (networks.length === 0) {
     return { networkKey: '', balance: 0 }
   }
 
   const walletNetwork = findTreasuryNetworkByChainId(paymentMethod, walletChainId)
-  const balances = await scanTreasuryBalances(accountAddress, paymentMethod, networks, bypassCache)
+  const balances = await scanTreasuryBalances(accountAddress, paymentMethod, networks)
   const best = pickBestBalance(balances, walletNetwork)
-  const result = best
-    ? { networkKey: best.networkKey, balance: best.balance }
-    : { networkKey: networks[0]?.key ?? '', balance: 0 }
-  if (result.balance > 0) {
-    writeBestTreasuryCache(cacheKey, result)
+  if (best) {
+    return { networkKey: best.networkKey, balance: best.balance }
   }
-  return result
+
+  return { networkKey: networks[0]?.key ?? '', balance: 0 }
 }
 
-export async function getBestTreasuryBalance(
-  accountAddress,
-  paymentMethod,
-  walletChainId,
-  { bypassCache = false } = {},
-) {
+export async function getBestTreasuryBalance(accountAddress, paymentMethod, walletChainId) {
   if (!isTreasuryPaymentMethod(paymentMethod) || !accountAddress) {
     return { networkKey: '', balance: 0 }
   }
 
-  const cacheKey = bestTreasuryCacheKey(accountAddress, paymentMethod, walletChainId)
-  if (!bypassCache) {
-    const cached = readBestTreasuryCache(cacheKey)
-    if (cached) {
-      return cached
-    }
-  }
-
+  const cacheKey = `${accountAddress}|${paymentMethod}|${walletChainId ?? ''}`
   const pending = bestTreasuryBalanceInFlight.get(cacheKey)
   if (pending) {
     return pending
   }
 
-  const request = resolveBestTreasuryBalance(
-    accountAddress,
-    paymentMethod,
-    walletChainId,
-    bypassCache,
-  )
+  const request = resolveBestTreasuryBalance(accountAddress, paymentMethod, walletChainId)
   bestTreasuryBalanceInFlight.set(cacheKey, request)
   try {
     return await request

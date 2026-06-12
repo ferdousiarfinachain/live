@@ -100,6 +100,13 @@ function AboutFeaturesSection({
   }, [selectedPayment])
 
   useEffect(() => {
+    if (!walletAddress) {
+      setPayAmount('')
+      setAmountWarning('')
+    }
+  }, [walletAddress])
+
+  useEffect(() => {
     return () => {
       if (amountWarningTimerRef.current) {
         window.clearTimeout(amountWarningTimerRef.current)

@@ -1,18 +1,18 @@
 /**
- * Reown AppKit connect list tweaks.
- * includeWalletIds does not remove the WalletConnect QR row or "recent" wallets.
+ * Reown AppKit connect popup — only WALLET_ORDER rows + Search Wallet.
  */
 
-w3m-list-wallet[data-testid='wallet-selector-walletconnect'],
-w3m-list-wallet[name='WalletConnect'] {
-  display: none !important;
+w3m-modal {
+  --apkt-borderRadius-8: 10px;
 }
 
-w3m-list-wallet[data-testid='wallet-selector-injected'],
-w3m-list-wallet[name='Browser Wallet'] {
-  display: none !important;
+w3m-modal[data-novex-under-guide] {
+  z-index: 11900 !important;
+  pointer-events: none !important;
 }
 
-wui-ux-by-reown {
+wui-ux-by-reown,
+wui-certified-switch,
+wui-icon-box[icon='qrCode'] {
   display: none !important;
 }

@@ -1,13 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useState } from 'react'
 import { ArrowLeftRight, Wallet } from 'lucide-react'
 import { FaXTwitter } from 'react-icons/fa6'
 import { SiBinance, SiTelegram } from 'react-icons/si'
 import {
   ConnectWalletModal,
-  MODAL_CLOSE_MS,
-  lockBodyScroll,
-  unlockBodyScroll,
+  openReownMetaMaskDownloads,
   useWalletSession,
 } from './wallet'
 import './App.css'
@@ -108,22 +105,6 @@ function scrollToPresalePanel() {
   document.getElementById('presale')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-function openCenteredPopup(url, title = 'wallet-download') {
-  const width = 520
-  const height = 760
-  const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2))
-  const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2))
-
-  window.open(
-    url,
-    title,
-    `popup=yes,width=${width},height=${height},left=${left},top=${top},noopener,noreferrer`,
-  )
-}
-
-/** Matches connect modal close duration (guide → connect handoff). */
-const WALLET_GUIDE_HANDOFF_MS = MODAL_CLOSE_MS
-
 const socialLinks = [
   { label: 'X', href: '#', icon: FaXTwitter },
   { label: 'Telegram', href: '#', icon: SiTelegram },
@@ -132,9 +113,6 @@ const socialLinks = [
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [connectModalOpen, setConnectModalOpen] = useState(false)
-  const [guideModalOpen, setGuideModalOpen] = useState(false)
-  const [guideModalClosing, setGuideModalClosing] = useState(false)
-  const guideHandoffTimerRef = useRef(null)
   const {
     isConnected,
     presaleWalletConnected,
@@ -143,31 +121,14 @@ function App() {
     handleDisconnect,
   } = useWalletSession()
 
-  useEffect(() => {
-    if (!guideModalOpen) return undefined
-    lockBodyScroll()
-    const onEsc = (event) => {
-      if (event.key === 'Escape') {
-        if (guideModalClosing) return
-        setGuideModalOpen(false)
-      }
-    }
-    window.addEventListener('keydown', onEsc)
-    return () => {
-      window.removeEventListener('keydown', onEsc)
-      unlockBodyScroll()
-    }
-  }, [guideModalOpen, guideModalClosing])
-
-  useEffect(() => () => {
-    if (guideHandoffTimerRef.current) window.clearTimeout(guideHandoffTimerRef.current)
-  }, [])
+  const openConnectWallet = () => setConnectModalOpen(true)
+  const openNoWalletGuide = () => {
+    void openReownMetaMaskDownloads()
+  }
 
   const handleNavClick = () => {
     setMenuOpen(false)
   }
-  const metaMaskDownloadUrl =
-    import.meta.env.VITE_METAMASK_DOWNLOAD_URL || 'https://metamask.io/download/'
 
   return (
     <div className="page">
@@ -218,7 +179,7 @@ function App() {
                 <button
                   className="cta-btn mobile-buy-btn"
                   type="button"
-                  onClick={() => setConnectModalOpen(true)}
+                  onClick={openConnectWallet}
                 >
                   Connect Wallet
                 </button>
@@ -245,7 +206,7 @@ function App() {
                 </button>
               </>
             ) : (
-              <button className="cta-btn" type="button" onClick={() => setConnectModalOpen(true)}>
+              <button className="cta-btn" type="button" onClick={openConnectWallet}>
                 Connect Wallet
               </button>
             )}
@@ -271,8 +232,8 @@ function App() {
             isConnected={isConnected}
             presaleWalletConnected={presaleWalletConnected}
             showNoWalletLink={showNoWalletLink}
-            onConnectWallet={() => setConnectModalOpen(true)}
-            onNoWallet={() => setGuideModalOpen(true)}
+            onConnectWallet={openConnectWallet}
+            onNoWallet={openNoWalletGuide}
           />
         </section>
 
@@ -389,93 +350,7 @@ function App() {
       <ConnectWalletModal
         isOpen={connectModalOpen}
         onClose={() => setConnectModalOpen(false)}
-        onNoWallet={() => setGuideModalOpen(true)}
       />
-      {guideModalOpen
-        ? createPortal(
-            <div
-              className={`wallet-modal-backdrop ${guideModalClosing ? 'wallet-modal-backdrop--closing wallet-modal-backdrop--handoff-under' : ''}`}
-              onClick={() => {
-                if (guideModalClosing) return
-                setGuideModalOpen(false)
-              }}
-              role="presentation"
-            >
-              <div
-                className={`wallet-modal ${guideModalClosing ? 'wallet-modal--closing' : ''}`}
-                role="dialog"
-                aria-modal="true"
-                aria-label="Get wallet guide"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  className="wallet-modal-close"
-                  onClick={() => {
-                    if (guideModalClosing) return
-                    setGuideModalOpen(false)
-                  }}
-                  aria-label="Close wallet guide"
-                >
-                  ×
-                </button>
-                <h2 className="wallet-modal-title">Get a wallet</h2>
-                <p className="wallet-modal-subtitle wallet-modal-subtitle--guide">
-                  Scan the QR code to install MetaMask. Then create your wallet and continue.
-                </p>
-                <div className="wallet-guide-grid">
-                  <figure className="wallet-guide-qr">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-                        metaMaskDownloadUrl,
-                      )}`}
-                      alt="MetaMask download QR code"
-                    />
-                  </figure>
-                  <p className="wallet-guide-caption">Scan to open MetaMask</p>
-                  <a
-                    href={metaMaskDownloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="wallet-guide-download"
-                    onClick={(event) => {
-                      event.preventDefault()
-                      openCenteredPopup(metaMaskDownloadUrl, 'metamask-download')
-                    }}
-                  >
-                    <img
-                      src="https://avatars.githubusercontent.com/u/11744586?s=200&v=4"
-                      alt=""
-                      width={22}
-                      height={22}
-                      aria-hidden="true"
-                      style={{ borderRadius: 4, objectFit: 'cover', display: 'block' }}
-                    />
-                    Download MetaMask
-                  </a>
-                  <button
-                    type="button"
-                    className="wallet-guide-primary"
-                    onClick={() => {
-                      if (guideModalClosing) return
-                      setConnectModalOpen(true)
-                      setGuideModalClosing(true)
-                      if (guideHandoffTimerRef.current) window.clearTimeout(guideHandoffTimerRef.current)
-                      guideHandoffTimerRef.current = window.setTimeout(() => {
-                        guideHandoffTimerRef.current = null
-                        setGuideModalOpen(false)
-                        setGuideModalClosing(false)
-                      }, WALLET_GUIDE_HANDOFF_MS)
-                    }}
-                  >
-                    I have a wallet - Connect
-                  </button>
-                </div>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
 
     </div>
   )

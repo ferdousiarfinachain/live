@@ -5,3 +5,15 @@ export const WALLET_ORDER = [
   'd0ca99ff52b99abc48743dad0f7fc891e041be73574f7fac4afe5d4bb83845c8',
   '8a0ee50d1f22f6651afcae7eb4253e52a3310b90af5daef78a8c4929a9bb99d4',
 ]
+
+export const WALLET_SELECTOR_TEST_IDS = new Set(
+  WALLET_ORDER.map((id) => `wallet-selector-${id}`),
+)
+
+export const WALLET_NAMES = new Set([
+  'MetaMask',
+  'Trust Wallet',
+  'Coinbase Wallet',
+  'Binance Wallet',
+  'Binance Web3 Wallet',
+])

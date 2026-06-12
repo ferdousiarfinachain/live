@@ -4,6 +4,7 @@ import { useAppKit, useAppKitState } from '@reown/appkit/react'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { defaultChain, isWalletConfigured } from './walletMetadata.js'
 import { clearRecentWallets } from './walletRecentSanitize.js'
+import { openReownMetaMaskDownloads } from './reownAppKit.js'
 import './ConnectWalletModal.css'
 
 export const MODAL_CLOSE_MS = 520
@@ -41,7 +42,7 @@ function ReownConnectOpener({ isOpen, onClose }) {
         onCloseRef.current()
       })
     }
-  }, [isOpen, isConnected, open])
+  }, [isConnected, isOpen, open])
 
   useEffect(() => {
     if (!isOpen || !isConnected) {
@@ -88,9 +89,10 @@ function ReownConnectOpener({ isOpen, onClose }) {
   return null
 }
 
-export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
+export default function ConnectWalletModal({ isOpen, onClose }) {
   const { isConnected } = useAccount()
   const { close } = useAppKit()
+  const prevConnectedRef = useRef(isConnected)
 
   // Parent sets isOpen=false before ReownConnectOpener can — otherwise disconnect reopens the modal.
   useEffect(() => {
@@ -104,10 +106,12 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
   }, [close, isConnected, isOpen, onClose])
 
   useEffect(() => {
-    if (isConnected) {
-      return
+    const wasConnected = prevConnectedRef.current
+    prevConnectedRef.current = isConnected
+
+    if (wasConnected && !isConnected) {
+      close().catch(() => {})
     }
-    close().catch(() => {})
   }, [close, isConnected])
 
   if (!isOpen || isConnected) {
@@ -149,18 +153,15 @@ export default function ConnectWalletModal({ isOpen, onClose, onNoWallet }) {
             , then restart <code>npm run dev</code>.
           </p>
         </div>
-        {onNoWallet ? (
-          <button
-            type="button"
-            className="wallet-modal-footer-btn"
-            onClick={() => {
-              onClose()
-              onNoWallet()
-            }}
-          >
-            I don&apos;t have a wallet
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="wallet-modal-footer-btn"
+          onClick={() => {
+            void openReownMetaMaskDownloads()
+          }}
+        >
+          I don&apos;t have a wallet
+        </button>
       </div>
     </div>,
     document.body,
