@@ -51,7 +51,7 @@ export function useWalletSession() {
     window.sessionStorage.removeItem(SHORT_ADDRESS_KEY)
     setAwaitingReconnect(false)
     disconnect()
-    resetWalletConnectSession()
+    window.setTimeout(() => resetWalletConnectSession(), 0)
   }
 
   return {
