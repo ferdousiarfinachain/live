@@ -1111,6 +1111,7 @@ if (reownProjectId) {
     },
   })
 
+  OptionsController.setMetadata(getAppMetadata())
   disableReownBranding()
   OptionsController.subscribeKey('remoteFeatures', disableReownBranding)
 }
