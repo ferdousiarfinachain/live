@@ -135,8 +135,8 @@ function App() {
       <StarfieldBackground />
       <header className="hero-header">
         <nav className="retro-nav">
-          <a href="/" className="brand" aria-label="Novex Labs home">
-            Novex Labs
+          <a href="/" className="brand" aria-label="Novex Fi home">
+            Novex Fi
           </a>
 
           <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
