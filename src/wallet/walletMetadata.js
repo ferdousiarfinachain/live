@@ -4,15 +4,10 @@ export const reownProjectId = (import.meta.env.VITE_REOWN_PROJECT_ID || '').toSt
 
 export const isWalletConfigured = Boolean(reownProjectId)
 
-export const appChains = [appChain]
-
 export const defaultChain = appChain
 
-export const requiredNetworkLabel = appChain.name || 'BNB Smart Chain'
-export const requiredChainId = appChain.id
-
 /** Must match Reown allowlist + the exact URL users load on mobile (www). */
-export const CANONICAL_APP_URL = 'https://www.novexlabs.xyz'
+const CANONICAL_APP_URL = 'https://www.novexlabs.xyz'
 
 function isLocalDevOrigin(origin) {
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
@@ -36,7 +31,7 @@ function isProductionOrigin(origin) {
 }
 
 /** URL passed to WalletConnect Verify API — fixed on production, dynamic on dev/preview. */
-export function getAppMetadataUrl() {
+function getAppMetadataUrl() {
   if (typeof window === 'undefined') {
     return CANONICAL_APP_URL
   }
@@ -65,5 +60,3 @@ export function getAppMetadata() {
     icons: [`${url}/social-preview.png`],
   }
 }
-
-export const appMetadata = getAppMetadata()

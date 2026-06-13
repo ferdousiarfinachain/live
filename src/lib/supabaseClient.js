@@ -5,7 +5,7 @@ const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').toString(
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 
-export const supabase = isSupabaseConfigured
+const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null
 

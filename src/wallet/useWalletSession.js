@@ -55,12 +55,10 @@ export function useWalletSession() {
   }
 
   return {
-    address,
     isConnected,
     presaleWalletConnected: isConnected || awaitingReconnect,
     showNoWalletLink: !isConnected && !awaitingReconnect,
     headerShortAddress,
-    shortAddress,
     handleDisconnect,
   }
 }

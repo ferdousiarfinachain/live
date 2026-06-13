@@ -11,7 +11,6 @@ import { getPublicClient } from './viemClients.js'
 
 let cachedSaleDecimals = null
 let cachedSaleDecimalsKey = ''
-const paymentDecimalsCache = new Map()
 
 const USD_PRICE_DECIMALS = 8
 
@@ -49,13 +48,6 @@ export function getErc20Contract(tokenAddress, chain = appChain) {
   }
 }
 
-export function getPaymentTokenAddress(paymentMethod) {
-  if (paymentMethod === 'BNB') {
-    return null
-  }
-  return null
-}
-
 async function readPresaleContract(presaleContract, functionName, args = []) {
   const client = getPublicClient(presaleContract.chainId)
   return readContract(client, {
@@ -74,33 +66,6 @@ async function readErc20Contract(tokenContract, functionName, args = []) {
     functionName,
     args,
   })
-}
-
-export async function readPaymentTokenDecimals(presaleContract, tokenAddress) {
-  const cacheKey = `${presaleContract.address}:${tokenAddress.toLowerCase()}`
-  if (paymentDecimalsCache.has(cacheKey)) {
-    return paymentDecimalsCache.get(cacheKey)
-  }
-
-  try {
-    const decimals = await readPresaleContract(presaleContract, 'paymentTokenDecimals', [tokenAddress])
-    if (Number(decimals) > 0) {
-      paymentDecimalsCache.set(cacheKey, Number(decimals))
-      return Number(decimals)
-    }
-  } catch {
-    // fall through to ERC20 decimals()
-  }
-
-  const tokenContract = getErc20Contract(tokenAddress, { id: presaleContract.chainId })
-  if (!tokenContract) {
-    throw new Error('Payment token contract is not configured.')
-  }
-
-  const decimals = await readErc20Contract(tokenContract, 'decimals')
-  const resolved = Number(decimals)
-  paymentDecimalsCache.set(cacheKey, resolved)
-  return resolved
 }
 
 export async function readSaleTokenDecimals(presaleContract) {
@@ -220,18 +185,7 @@ export async function quoteReceiveAmount(paymentMethod, amountHuman) {
     return formatQuotedDisplay(tokenAmountWei, saleTokenDecimals)
   }
 
-  const paymentToken = getPaymentTokenAddress(paymentMethod)
-  if (!paymentToken) {
-    return ''
-  }
-
-  const paymentDecimals = await readPaymentTokenDecimals(presaleContract, paymentToken)
-  const paymentWei = parseHumanAmount(amount, paymentDecimals)
-  const tokenAmountWei = await readPresaleContract(presaleContract, 'quoteBuyWithToken', [
-    paymentToken,
-    paymentWei,
-  ])
-  return formatQuotedDisplay(tokenAmountWei, saleTokenDecimals)
+  return ''
 }
 
 export function prefetchQuoteMetadata() {

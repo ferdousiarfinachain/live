@@ -4,12 +4,6 @@ import { bscMainnetChain, bscTestnetChain, ethereum } from '../wallet/chains.js'
 export {
   getConfiguredTreasuryNetworks,
   getExplorerTxUrl,
-  getTreasuryAddress,
-  getTreasuryChain,
-  getTreasuryNetworksForMethod,
-  getTreasuryTokenAddress,
-  isTreasuryConfigured,
-  isTreasuryMethodConfigured,
   isTreasuryRouteConfigured,
 } from './treasuryChains.js'
 

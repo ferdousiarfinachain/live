@@ -6,13 +6,10 @@ w3m-modal {
   --apkt-borderRadius-8: 10px;
 }
 
-w3m-modal[data-novex-under-guide] {
-  z-index: 11900 !important;
-  pointer-events: none !important;
-}
-
 wui-ux-by-reown,
 wui-certified-switch,
-wui-icon-box[icon='qrCode'] {
+wui-icon-box[icon='qrCode'],
+w3m-list-wallet[data-testid='wallet-selector-walletconnect'],
+w3m-list-wallet[name='WalletConnect'] {
   display: none !important;
 }

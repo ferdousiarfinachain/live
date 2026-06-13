@@ -20,7 +20,6 @@ import { useTreasuryNetworkDetect } from '../wallet/useTreasuryNetworkDetect'
 import PurchaseSuccessModal from '../wallet/PurchaseSuccessModal'
 import ClaimSuccessModal from './ClaimSuccessModal'
 
-const PRESALE_LISTING_PRICE_USD = 0.0023
 const PRESALE_LISTING_PRICE_LABEL = '$0.0023'
 const PRESALE_USD_GOAL = 1_000_000
 const PRESALE_USD_RAISED = 2_211.26

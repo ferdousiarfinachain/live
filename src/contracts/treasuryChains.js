@@ -15,10 +15,8 @@ function envAddress(name) {
   return raw || null
 }
 
-export { bscTreasuryChain }
-
 /** Native ETH — Ethereum, Arbitrum, Base, Optimism */
-export const ETH_NATIVE_TREASURY_NETWORKS = [
+const ETH_NATIVE_TREASURY_NETWORKS = [
   { key: 'ethereum', label: 'ETH', chainId: 1, chain: ethereum },
   { key: 'arbitrum', label: 'ARB', chainId: 42161, chain: arbitrum },
   { key: 'base', label: 'Base', chainId: 8453, chain: base },
@@ -26,7 +24,7 @@ export const ETH_NATIVE_TREASURY_NETWORKS = [
 ]
 
 /** USDT / USDC — 7 chains */
-export const STABLECOIN_TREASURY_NETWORKS = [
+const STABLECOIN_TREASURY_NETWORKS = [
   { key: 'ethereum', label: 'ETH', chainId: 1, chain: ethereum },
   { key: 'bsc', label: 'BSC', chainId: 56, chain: bscTreasuryChain },
   { key: 'arbitrum', label: 'ARB', chainId: 42161, chain: arbitrum },
@@ -41,13 +39,13 @@ for (const network of [...ETH_NATIVE_TREASURY_NETWORKS, ...STABLECOIN_TREASURY_N
   networksByKey.set(network.key, network)
 }
 
-export const treasuryAddress = envAddress('VITE_TREASURY_ADDRESS')
+const treasuryAddress = envAddress('VITE_TREASURY_ADDRESS')
 
 export function getTreasuryAddress() {
   return treasuryAddress
 }
 
-export function getTreasuryNetworksForMethod(paymentMethod) {
+function getTreasuryNetworksForMethod(paymentMethod) {
   if (paymentMethod === 'ETH') {
     return ETH_NATIVE_TREASURY_NETWORKS
   }
@@ -125,10 +123,6 @@ export function getConfiguredTreasuryNetworks(paymentMethod) {
 export function isTreasuryMethodConfigured(paymentMethod) {
   return getConfiguredTreasuryNetworks(paymentMethod).length > 0
 }
-
-export const isTreasuryConfigured =
-  isSupabaseConfigured &&
-  TREASURY_PAYMENT_METHODS.every((method) => isTreasuryMethodConfigured(method))
 
 const EXPLORER_BASE_URLS = {
   1: 'https://etherscan.io/tx/',

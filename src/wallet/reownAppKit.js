@@ -1,5 +1,12 @@
 import { createAppKit } from '@reown/appkit/react'
-import { ApiController, ChainController, ModalController, OptionsController, RouterController } from '@reown/appkit-controllers'
+import {
+  ApiController,
+  ChainController,
+  ConnectorUtil,
+  ModalController,
+  OptionsController,
+  RouterController,
+} from '@reown/appkit-controllers'
 import { wagmiChains } from './chains.js'
 import { WALLET_NAMES, WALLET_ORDER, WALLET_SELECTOR_TEST_IDS } from './Order.js'
 import './reownModalOverrides.css'
@@ -7,86 +14,7 @@ import { clearRecentWallets, resetWalletConnectSession } from './walletRecentSan
 import { wagmiAdapter } from './wagmiConfig.js'
 import { getAppMetadata, reownProjectId } from './walletMetadata.js'
 
-export let appKitModal
-
-let reownHandoffCloseTimer = null
-
-const MODAL_HANDOFF_MS = 520
-const MODAL_HANDOFF_EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)'
-const REOWN_HANDOFF_CLOSE_CSS = `
-  :host([data-novex-handoff-close]) {
-    pointer-events: none !important;
-    transition:
-      opacity ${MODAL_HANDOFF_MS}ms ${MODAL_HANDOFF_EASE_OUT},
-      backdrop-filter ${MODAL_HANDOFF_MS}ms ${MODAL_HANDOFF_EASE_OUT} !important;
-  }
-
-  :host([data-novex-handoff-close]) wui-card {
-    transition:
-      transform ${MODAL_HANDOFF_MS}ms ${MODAL_HANDOFF_EASE_OUT},
-      opacity ${MODAL_HANDOFF_MS}ms ${MODAL_HANDOFF_EASE_OUT} !important;
-  }
-
-  :host([data-novex-handoff-close='active']) {
-    opacity: 0 !important;
-    backdrop-filter: blur(0px) !important;
-  }
-
-  :host([data-novex-handoff-close='active']) wui-card {
-    transform: translateY(10px) scale(0.97) !important;
-    opacity: 0 !important;
-  }
-`
-
-export function cancelReownConnectHandoffClose() {
-  if (reownHandoffCloseTimer) {
-    window.clearTimeout(reownHandoffCloseTimer)
-    reownHandoffCloseTimer = null
-  }
-
-  document.querySelectorAll('w3m-modal').forEach((modal) => {
-    modal.removeAttribute('data-novex-handoff-close')
-  })
-}
-
-const REOWN_UNDER_GUIDE_CSS = `
-  :host {
-    z-index: 11900 !important;
-    pointer-events: none !important;
-    transition: none !important;
-  }
-`
-
-export function pushReownBelowGuide() {
-  document.querySelectorAll('w3m-modal').forEach((modal) => {
-    modal.setAttribute('data-novex-under-guide', '')
-    modal.style.setProperty('z-index', '11900', 'important')
-    modal.style.setProperty('pointer-events', 'none', 'important')
-    if (modal.shadowRoot) {
-      injectShadowStyle(modal.shadowRoot, 'data-novex-under-guide', REOWN_UNDER_GUIDE_CSS)
-    }
-  })
-}
-
-export function restoreReownFromGuide() {
-  document.querySelectorAll('w3m-modal').forEach((modal) => {
-    modal.removeAttribute('data-novex-under-guide')
-    modal.style.removeProperty('z-index')
-    modal.style.removeProperty('pointer-events')
-    modal.shadowRoot?.querySelector('style[data-novex-under-guide]')?.remove()
-  })
-}
-
-export function closeReownConnectModal() {
-  cancelReownConnectHandoffClose()
-  removeAllNoWalletFooters()
-  restoreReownFromGuide()
-  return ModalController.close().catch(() => {})
-}
-
-export function closeReownModalForGuideHandoff() {
-  return closeReownConnectModal()
-}
+let appKitModal
 
 const METAMASK_DOWNLOAD_URL =
   import.meta.env.VITE_METAMASK_DOWNLOAD_URL || 'https://metamask.io/download/'
@@ -248,14 +176,6 @@ export function openReownMetaMaskDownloads() {
   })
 }
 
-if (typeof window !== 'undefined') {
-  window.__novexOpenMetaMaskDownloads = (event) => {
-    event?.preventDefault?.()
-    event?.stopPropagation?.()
-    openReownMetaMaskDownloads()
-  }
-}
-
 const MODAL_BORDER_RADIUS = '10px'
 const WALLET_POPUP_BG = 'linear-gradient(180deg, #16161cfa 0%, #0c0c10fa 100%)'
 const WALLET_POPUP_BORDER = '#363636'
@@ -265,7 +185,9 @@ const WALLET_INSTALLED_COLOR = '#30A46B'
 const HIDE_UI_CSS = `
   wui-ux-by-reown,
   wui-certified-switch,
-  wui-icon-box[icon='qrCode'] {
+  wui-icon-box[icon='qrCode'],
+  w3m-list-wallet[data-testid='wallet-selector-walletconnect'],
+  w3m-list-wallet[name='WalletConnect'] {
     display: none !important;
   }
 `
@@ -488,9 +410,32 @@ let refreshTimers = []
 let isPatchingReownModal = false
 let suppressModalPatchesUntil = 0
 
+const HIDDEN_WALLET_NAMES = new Set(['WalletConnect', 'Browser Wallet'])
+
+function getWalletRowName(element) {
+  return String(element.getAttribute('name') ?? element.name ?? '').trim()
+}
+
+function getWalletRowTestId(element) {
+  return String(element.getAttribute('data-testid') ?? element.dataset?.testid ?? '').trim()
+}
+
+function isWalletConnectQrRow(element) {
+  const name = getWalletRowName(element)
+  const testId = getWalletRowTestId(element)
+  const tagLabel = String(element.tagLabel ?? '').trim().toLowerCase()
+
+  return (
+    HIDDEN_WALLET_NAMES.has(name) ||
+    /walletconnect/i.test(name) ||
+    /walletconnect/i.test(testId) ||
+    tagLabel === 'qr code'
+  )
+}
+
 function isSearchWalletRow(element) {
-  const testId = element.getAttribute('data-testid') ?? ''
-  const name = element.getAttribute('name') ?? ''
+  const testId = getWalletRowTestId(element)
+  const name = getWalletRowName(element)
   return testId === 'all-wallets' || name === 'Search Wallet' || element.showAllWallets === true
 }
 
@@ -499,12 +444,21 @@ function shouldHideWalletRow(element) {
     return false
   }
 
-  const name = element.getAttribute('name') ?? ''
+  if (isWalletConnectQrRow(element)) {
+    return true
+  }
+
+  const name = getWalletRowName(element)
+  const testId = getWalletRowTestId(element)
+
+  if (testId === 'metaMaskSDK' || testId === 'io.metamask' || testId === 'io.metamask.mobile') {
+    return true
+  }
+
   if (name && WALLET_NAMES.has(name)) {
     return false
   }
 
-  const testId = element.getAttribute('data-testid') ?? ''
   if (testId && WALLET_SELECTOR_TEST_IDS.has(testId)) {
     return false
   }
@@ -542,7 +496,7 @@ function hideUnwantedWalletRows(root) {
     return
   }
 
-  root.querySelectorAll('w3m-list-wallet, wui-list-wallet, wui-ux-by-reown').forEach((node) => {
+  queryDeep(root, 'w3m-list-wallet, wui-list-wallet, wui-ux-by-reown').forEach((node) => {
     if (node.tagName === 'WUI-UX-BY-REOWN' || shouldHideWalletRow(node)) {
       node.style.setProperty('display', 'none', 'important')
     } else {
@@ -550,7 +504,7 @@ function hideUnwantedWalletRows(root) {
     }
   })
 
-  root.querySelectorAll('wui-certified-switch, wui-icon-box[icon="qrCode"]').forEach((node) => {
+  queryDeep(root, 'wui-certified-switch, wui-icon-box[icon="qrCode"]').forEach((node) => {
     node.style.setProperty('display', 'none', 'important')
   })
 }
@@ -582,24 +536,6 @@ function ensureModalRadiusStyles(modalRoot) {
     modalRoot.appendChild(style)
   }
   style.textContent = `${MODAL_RADIUS_CSS}\n${HIDE_UI_CSS}\n${CONNECT_HINT_CSS}`
-}
-
-function removeNoWalletFootersIn(root) {
-  if (!root) {
-    return
-  }
-
-  queryDeep(root, '[data-novex-no-wallet]').forEach((element) => {
-    element.remove()
-  })
-}
-
-function removeAllNoWalletFooters() {
-  if (typeof document !== 'undefined') {
-    document.querySelectorAll('w3m-modal').forEach((modal) => {
-      removeNoWalletFootersIn(modal.shadowRoot)
-    })
-  }
 }
 
 function injectConnectWalletHint(modalRoot) {
@@ -1036,7 +972,6 @@ function patchReownModal(modal) {
     applyModalBorderRadius(modal)
     applyTransparentModalSections(root)
     injectConnectWalletHint(root)
-    removeNoWalletFootersIn(root)
     walkShadowTree(root)
     observeModalShadow(modal)
   } finally {
@@ -1109,12 +1044,10 @@ function installReownModalUiPatches() {
     }
 
     cachedMetaMaskWallet = null
-    removeAllNoWalletFooters()
   })
 
   RouterController.subscribeKey('view', (view) => {
     if (!ModalController.state.open) {
-      removeAllNoWalletFooters()
       return
     }
 
@@ -1141,8 +1074,18 @@ function disableReownBranding() {
   }
 }
 
+function suppressWalletConnectQrConnectorRow() {
+  const listConnectors = ConnectorUtil.connectorList.bind(ConnectorUtil)
+
+  ConnectorUtil.connectorList = () =>
+    listConnectors().filter(
+      (item) => !(item.kind === 'connector' && item.subtype === 'walletConnect'),
+    )
+}
+
 if (reownProjectId) {
   clearRecentWallets()
+  suppressWalletConnectQrConnectorRow()
   installReownModalUiPatches()
 
   appKitModal = createAppKit({
@@ -1164,7 +1107,7 @@ if (reownProjectId) {
       socials: false,
       allWallets: true,
       reownBranding: false,
-      connectorTypeOrder: ['external', 'featured', 'injected'],
+      connectorTypeOrder: ['injected', 'featured'],
     },
   })
 

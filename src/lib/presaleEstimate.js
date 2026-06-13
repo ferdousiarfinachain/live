@@ -1,4 +1,4 @@
-export function estimateTokensFromUsdValue(usdValue, tokenPriceUsd) {
+function estimateTokensFromUsdValue(usdValue, tokenPriceUsd) {
   const usd = Number(usdValue)
   const price = Number(tokenPriceUsd)
   if (!Number.isFinite(usd) || usd <= 0 || !Number.isFinite(price) || price <= 0) {

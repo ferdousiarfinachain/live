@@ -166,7 +166,7 @@ async function fetchSpendableTreasuryBalance(accountAddress, paymentMethod, netw
   }
 }
 
-export async function getSpendableTreasuryBalance(accountAddress, paymentMethod, networkKey) {
+async function getSpendableTreasuryBalance(accountAddress, paymentMethod, networkKey) {
   const cacheKey = spendableCacheKey(accountAddress, paymentMethod, networkKey)
   const cached = readSpendableCache(cacheKey)
   if (cached !== null) {
@@ -283,7 +283,7 @@ export async function warmPaymentBalanceCache(accountAddress, walletChainId) {
   await Promise.allSettled(tasks)
 }
 
-export function findTreasuryNetworkByChainId(paymentMethod, chainId) {
+function findTreasuryNetworkByChainId(paymentMethod, chainId) {
   const normalizedChainId = Number(chainId)
   if (!Number.isFinite(normalizedChainId) || normalizedChainId <= 0) {
     return null
