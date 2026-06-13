@@ -14,14 +14,11 @@ export const requiredChainId = appChain.id
 /** Must match Reown allowlist + the exact URL users load on mobile (www). */
 export const CANONICAL_APP_URL = 'https://www.novexlabs.xyz'
 
-function isLocalDevOrigin(origin) {
-  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
-}
-
-/** Build metadata at connect time so url always matches Verify API expectations. */
+/** Build metadata at connect time — url must exactly match the page MetaMask verifies. */
 export function getAppMetadata() {
-  if (typeof window !== 'undefined' && isLocalDevOrigin(window.location.origin)) {
+  if (typeof window !== 'undefined') {
     const origin = window.location.origin.replace(/\/$/, '')
+
     return {
       name: 'Novex Labs',
       description: 'Connect your wallet to Novex Labs',
