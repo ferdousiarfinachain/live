@@ -1,9 +1,9 @@
 import { createAppKit } from '@reown/appkit/react'
-import { ApiController, ModalController, OptionsController, RouterController } from '@reown/appkit-controllers'
+import { ApiController, ChainController, ModalController, OptionsController, RouterController } from '@reown/appkit-controllers'
 import { wagmiChains } from './chains.js'
 import { WALLET_NAMES, WALLET_ORDER, WALLET_SELECTOR_TEST_IDS } from './Order.js'
 import './reownModalOverrides.css'
-import { clearRecentWallets } from './walletRecentSanitize.js'
+import { clearRecentWallets, resetWalletConnectSession } from './walletRecentSanitize.js'
 import { wagmiAdapter } from './wagmiConfig.js'
 import { getAppMetadata, reownProjectId } from './walletMetadata.js'
 
@@ -1098,7 +1098,11 @@ function installReownModalUiPatches() {
 
   ModalController.subscribeKey('open', (isOpen) => {
     if (isOpen) {
-      clearRecentWallets()
+      if (!ChainController.state.activeCaipAddress) {
+        resetWalletConnectSession()
+      } else {
+        clearRecentWallets()
+      }
       prefetchMetaMaskWallet()
       scheduleModalOpenRefreshes()
       return

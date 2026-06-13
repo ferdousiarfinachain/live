@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAccount, useDisconnect } from 'wagmi'
+import { resetWalletConnectSession } from './walletRecentSanitize.js'
 
 const WAS_CONNECTED_KEY = 'novex_wallet_connected'
 const SHORT_ADDRESS_KEY = 'novex_wallet_short'
@@ -50,6 +51,7 @@ export function useWalletSession() {
     window.sessionStorage.removeItem(SHORT_ADDRESS_KEY)
     setAwaitingReconnect(false)
     disconnect()
+    resetWalletConnectSession()
   }
 
   return {
