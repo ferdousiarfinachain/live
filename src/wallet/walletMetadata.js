@@ -14,24 +14,55 @@ export const requiredChainId = appChain.id
 /** Must match Reown allowlist + the exact URL users load on mobile (www). */
 export const CANONICAL_APP_URL = 'https://www.novexlabs.xyz'
 
+function isLocalDevOrigin(origin) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+}
+
+function isPreviewOrigin(origin) {
+  try {
+    return new URL(origin).hostname.endsWith('.vercel.app')
+  } catch {
+    return false
+  }
+}
+
+function isProductionOrigin(origin) {
+  try {
+    const hostname = new URL(origin).hostname.toLowerCase()
+    return hostname === 'www.novexlabs.xyz' || hostname === 'novexlabs.xyz'
+  } catch {
+    return false
+  }
+}
+
+/** URL passed to WalletConnect Verify API — fixed on production, dynamic on dev/preview. */
+export function getAppMetadataUrl() {
+  if (typeof window === 'undefined') {
+    return CANONICAL_APP_URL
+  }
+
+  const origin = window.location.origin.replace(/\/$/, '')
+
+  if (isLocalDevOrigin(origin) || isPreviewOrigin(origin)) {
+    return origin
+  }
+
+  if (isProductionOrigin(origin)) {
+    return CANONICAL_APP_URL
+  }
+
+  return origin
+}
+
 /** Build metadata at connect time — url must exactly match the page MetaMask verifies. */
 export function getAppMetadata() {
-  if (typeof window !== 'undefined') {
-    const origin = window.location.origin.replace(/\/$/, '')
-
-    return {
-      name: 'Novex Labs',
-      description: 'Connect your wallet to Novex Labs',
-      url: origin,
-      icons: [`${origin}/social-preview.png`],
-    }
-  }
+  const url = getAppMetadataUrl()
 
   return {
     name: 'Novex Labs',
     description: 'Connect your wallet to Novex Labs',
-    url: CANONICAL_APP_URL,
-    icons: [`${CANONICAL_APP_URL}/social-preview.png`],
+    url,
+    icons: [`${url}/social-preview.png`],
   }
 }
 

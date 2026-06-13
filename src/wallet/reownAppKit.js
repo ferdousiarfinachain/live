@@ -1164,7 +1164,7 @@ if (reownProjectId) {
       socials: false,
       allWallets: true,
       reownBranding: false,
-      connectorTypeOrder: ['injected', 'featured'],
+      connectorTypeOrder: ['external', 'featured', 'injected'],
     },
   })
 
