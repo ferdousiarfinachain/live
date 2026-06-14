@@ -2,13 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="canonical" href="https://www.novexlabs.xyz/" />
+    <link rel="canonical" href="%OG_PAGE_URL%" />
     <script>
-      if (location.hostname === 'novexlabs.xyz') {
+      ;(function () {
+        var host = location.hostname
+        if (
+          host === 'localhost' ||
+          host === '127.0.0.1' ||
+          host.endsWith('.localhost') ||
+          host.indexOf(':') !== -1 ||
+          host.split('.').length < 2 ||
+          host.indexOf('www.') === 0
+        ) {
+          return
+        }
         location.replace(
-          'https://www.novexlabs.xyz' + location.pathname + location.search + location.hash,
+          location.protocol +
+            '//www.' +
+            host +
+            location.pathname +
+            location.search +
+            location.hash,
         )
-      }
+      })()
     </script>
     <link rel="icon" type="image/svg+xml" href="/fevicon2.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

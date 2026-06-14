@@ -77,14 +77,27 @@ function AboutFeaturesSection({
   const [amountWarning, setAmountWarning] = useState('')
   const [isPayConfirming, setIsPayConfirming] = useState(false)
   const [countdownRemainingMs, setCountdownRemainingMs] = useState(null)
+  const countdownEndedRef = useRef(false)
   const amountWarningTimerRef = useRef(null)
   const [successPurchase, setSuccessPurchase] = useState(null)
   const [successClaim, setSuccessClaim] = useState(null)
   const { address: walletAddress } = useAccount()
   const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
   const presaleStats = usePresaleStats()
+  useEffect(() => {
+    countdownEndedRef.current = false
+    setCountdownRemainingMs(null)
+  }, [presaleStats.countdownTarget])
   const handleCountdownRemaining = useCallback((remainingMs) => {
-    setCountdownRemainingMs(remainingMs)
+    if (remainingMs == null) {
+      countdownEndedRef.current = false
+      setCountdownRemainingMs(null)
+      return
+    }
+    if (remainingMs <= 0 && !countdownEndedRef.current) {
+      countdownEndedRef.current = true
+      setCountdownRemainingMs(remainingMs)
+    }
   }, [])
   const presaleCountdownEnded =
     Boolean(presaleStats.countdownTarget) &&

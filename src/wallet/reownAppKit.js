@@ -949,6 +949,10 @@ function observeModalShadow(modal) {
   observedModalRoots.add(root)
 
   const observer = new MutationObserver(() => {
+    if (!ModalController.state.open) {
+      return
+    }
+
     if (muteModalPatchObserver) {
       if (RouterController.state.view === 'Downloads') {
         scheduleDownloadsStylePass()
@@ -980,14 +984,19 @@ function patchReownModal(modal) {
 }
 
 function refreshReownModalPatches() {
-  if (typeof document === 'undefined') {
+  if (typeof document === 'undefined' || !ModalController.state.open) {
     return
   }
   document.querySelectorAll('w3m-modal').forEach(patchReownModal)
 }
 
 function scheduleRefreshReownModalPatches() {
-  if (refreshScheduled || typeof document === 'undefined' || muteModalPatchObserver) {
+  if (
+    refreshScheduled ||
+    typeof document === 'undefined' ||
+    muteModalPatchObserver ||
+    !ModalController.state.open
+  ) {
     return
   }
   refreshScheduled = true
@@ -1014,7 +1023,6 @@ function installReownModalUiPatches() {
   }
 
   installMetaMaskHintGlobalHandler()
-  refreshReownModalPatches()
 
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
@@ -1023,7 +1031,9 @@ function installReownModalUiPatches() {
           continue
         }
         if (node.localName === 'w3m-modal' || node.querySelector?.('w3m-modal')) {
-          scheduleModalOpenRefreshes()
+          if (ModalController.state.open) {
+            scheduleModalOpenRefreshes()
+          }
           return
         }
       }

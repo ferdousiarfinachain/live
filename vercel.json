@@ -7,8 +7,8 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "novexlabs.xyz" }],
-      "destination": "https://www.novexlabs.xyz/:path*",
+      "has": [{ "type": "host", "value": "novexfi.xyz" }],
+      "destination": "https://www.novexfi.xyz/:path*",
       "permanent": true
     }
   ]
