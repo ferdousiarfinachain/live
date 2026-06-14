@@ -7,8 +7,12 @@ const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 const EMPTY_TIME = { days: 0, hours: 0, minutes: 0, seconds: 0 }
 
+function getRemainingMs(targetMs) {
+  return Math.max(0, targetMs - Date.now())
+}
+
 function getTimeLeft(targetMs) {
-  const diff = Math.max(0, targetMs - Date.now())
+  const diff = getRemainingMs(targetMs)
   const days = Math.floor(diff / DAY)
   const hours = Math.floor((diff % DAY) / HOUR)
   const minutes = Math.floor((diff % HOUR) / MINUTE)
@@ -44,7 +48,7 @@ function resolveTargetMs(targetDate) {
   return Number.isFinite(ms) ? ms : null
 }
 
-function CountdownTimer({ targetDate }) {
+function CountdownTimer({ targetDate, onRemainingMsChange }) {
   const resolvedTargetMs = useMemo(() => resolveTargetMs(targetDate), [targetDate])
 
   const [timeLeft, setTimeLeft] = useState(() =>
@@ -54,10 +58,12 @@ function CountdownTimer({ targetDate }) {
   useLayoutEffect(() => {
     if (resolvedTargetMs == null) {
       setTimeLeft(EMPTY_TIME)
+      onRemainingMsChange?.(null)
       return
     }
     setTimeLeft(getTimeLeft(resolvedTargetMs))
-  }, [resolvedTargetMs])
+    onRemainingMsChange?.(getRemainingMs(resolvedTargetMs))
+  }, [onRemainingMsChange, resolvedTargetMs])
 
   useEffect(() => {
     if (resolvedTargetMs == null) {
@@ -66,10 +72,11 @@ function CountdownTimer({ targetDate }) {
 
     const timerId = window.setInterval(() => {
       setTimeLeft(getTimeLeft(resolvedTargetMs))
+      onRemainingMsChange?.(getRemainingMs(resolvedTargetMs))
     }, 1000)
 
     return () => window.clearInterval(timerId)
-  }, [resolvedTargetMs])
+  }, [onRemainingMsChange, resolvedTargetMs])
 
   const items = [
     { label: 'DAYS', value: timeLeft.days },

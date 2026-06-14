@@ -12,6 +12,7 @@
 
 .page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
@@ -1014,13 +1015,14 @@
 .site-footer {
   margin-top: auto;
   min-height: 170px;
-
+  flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(5, 11, 22, 0) 0%, #050b16 36%);
 }
 
 .footer-overlay {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 30px 16px 30px;
+  padding: 30px 16px calc(30px + env(safe-area-inset-bottom, 0px));
   text-align: center;
   backdrop-filter: blur(1px);
 }
@@ -1596,7 +1598,7 @@ html.scroll-locked {
   }
 
   .footer-overlay {
-    padding: 22px 15px 22px;
+    padding: 22px 15px calc(22px + env(safe-area-inset-bottom, 0px));
   }
 
   .footer-disclaimer {

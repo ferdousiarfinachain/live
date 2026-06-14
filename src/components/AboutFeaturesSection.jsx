@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAccount } from 'wagmi'
 import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
@@ -76,12 +76,20 @@ function AboutFeaturesSection({
   const [payAmount, setPayAmount] = useState('')
   const [amountWarning, setAmountWarning] = useState('')
   const [isPayConfirming, setIsPayConfirming] = useState(false)
+  const [countdownRemainingMs, setCountdownRemainingMs] = useState(null)
   const amountWarningTimerRef = useRef(null)
   const [successPurchase, setSuccessPurchase] = useState(null)
   const [successClaim, setSuccessClaim] = useState(null)
   const { address: walletAddress } = useAccount()
   const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
   const presaleStats = usePresaleStats()
+  const handleCountdownRemaining = useCallback((remainingMs) => {
+    setCountdownRemainingMs(remainingMs)
+  }, [])
+  const presaleCountdownEnded =
+    Boolean(presaleStats.countdownTarget) &&
+    countdownRemainingMs != null &&
+    countdownRemainingMs <= 0
   const treasurySelected = isTreasuryPaymentMethod(selectedPayment)
   const configuredTreasuryNetworks = useMemo(
     () => (treasurySelected ? getConfiguredTreasuryNetworks(selectedPayment) : []),
@@ -155,6 +163,12 @@ function AboutFeaturesSection({
   const hasValidMax =
     maxPayRaw !== '' && Number.isFinite(maxPayNum) && maxPayNum > 0
   const showWalletConfirm = isBuying || isPayConfirming
+  const payButtonDisabled = showWalletConfirm || presaleCountdownEnded
+  const payButtonLabel = showWalletConfirm
+    ? 'CONFIRM IN WALLET…'
+    : presaleCountdownEnded
+      ? 'PRESALE ENDED'
+      : 'PROCEED TO PAY'
 
   const panelMode = (import.meta.env.VITE_APP_PANEL_MODE || 'buy').toString().trim().toLowerCase()
   const isClaimMode = panelMode === 'claim'
@@ -254,6 +268,9 @@ function AboutFeaturesSection({
   }
 
   async function handleProceedToPay() {
+    if (presaleCountdownEnded) {
+      return
+    }
     if (!isValidPayAmount(payAmount)) {
       showAmountWarning()
       return
@@ -383,7 +400,10 @@ function AboutFeaturesSection({
           </div>
 
           <p className="presale-raised">USD Raised: {raisedDisplay}</p>
-          <CountdownTimer targetDate={presaleStats.countdownTarget} />
+          <CountdownTimer
+            targetDate={presaleStats.countdownTarget}
+            onRemainingMsChange={handleCountdownRemaining}
+          />
 
           <h3 className="presale-subtitle">Presale Payment Methods</h3>
           <div className="presale-methods">
@@ -458,12 +478,12 @@ function AboutFeaturesSection({
               <button
                 type="button"
                 className="presale-connect-btn"
-                disabled={showWalletConfirm}
+                disabled={payButtonDisabled}
                 onClick={() => {
                   handleProceedToPay().catch(() => {})
                 }}
               >
-                {showWalletConfirm ? 'CONFIRM IN WALLET…' : 'PROCEED TO PAY'}
+                {payButtonLabel}
               </button>
               {amountWarning ? (
                 <p className="presale-amount-warning" role="alert">
