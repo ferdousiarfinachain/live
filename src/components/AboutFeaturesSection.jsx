@@ -253,8 +253,11 @@ function AboutFeaturesSection({
   }
 
   async function applyMaxPay() {
-    if (!walletAddress) {
+    if (!presaleWalletConnected) {
       onConnectWallet?.()
+      return
+    }
+    if (!walletAddress) {
       return
     }
     if (hasValidMax) {
