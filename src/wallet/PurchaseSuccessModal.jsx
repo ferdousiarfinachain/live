@@ -6,7 +6,7 @@ import ethLogo from 'cryptocurrency-icons/svg/color/eth.svg'
 import usdtLogo from 'cryptocurrency-icons/svg/color/usdt.svg'
 import usdcLogo from 'cryptocurrency-icons/svg/color/usdc.svg'
 import { chainId, getExplorerTxUrl } from '../contracts/config.js'
-import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock'
+import { lockBodyScroll } from './bodyScrollLock'
 import { MODAL_CLOSE_MS } from './ConnectWalletModal'
 import './PurchaseSuccessModal.css'
 
@@ -41,9 +41,11 @@ export default function PurchaseSuccessModal({
   const paymentLogo = paymentLogos[paymentMethod]
 
   useLayoutEffect(() => {
-    if (!visible) return undefined
+    if (!visible) {
+      return undefined
+    }
 
-    lockBodyScroll()
+    const releaseScroll = lockBodyScroll()
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') beginClose()
@@ -52,7 +54,7 @@ export default function PurchaseSuccessModal({
 
     return () => {
       window.removeEventListener('keydown', onKeyDown)
-      unlockBodyScroll()
+      releaseScroll()
     }
   }, [visible])
 

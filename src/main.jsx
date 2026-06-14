@@ -5,9 +5,11 @@ import App from './App.jsx'
 import { Web3Providers } from './wallet'
 import { prefetchPresaleStats } from './wallet/usePresaleStats.js'
 import { prefetchQuoteMetadata } from './wallet/presaleContract.js'
+import { forceUnlockBodyScroll } from './wallet/bodyScrollLock.js'
 
 prefetchPresaleStats()
 prefetchQuoteMetadata()
+forceUnlockBodyScroll()
 
 if (typeof document !== 'undefined') {
   const markFontsReady = () => {

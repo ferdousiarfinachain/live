@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, ExternalLink } from 'lucide-react'
 import { chainId, getExplorerTxUrl } from '../../contracts/config.js'
-import { lockBodyScroll, unlockBodyScroll } from '../../wallet/bodyScrollLock'
+import { lockBodyScroll } from '../../wallet/bodyScrollLock'
 import { MODAL_CLOSE_MS } from '../../wallet/ConnectWalletModal'
 import './ClaimSuccessModal.css'
 
@@ -27,9 +27,11 @@ export default function ClaimSuccessModal({
   const tokenMoniker = `$${tokenLabel}`
 
   useLayoutEffect(() => {
-    if (!visible) return undefined
+    if (!visible) {
+      return undefined
+    }
 
-    lockBodyScroll()
+    const releaseScroll = lockBodyScroll()
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') beginClose()
@@ -38,7 +40,7 @@ export default function ClaimSuccessModal({
 
     return () => {
       window.removeEventListener('keydown', onKeyDown)
-      unlockBodyScroll()
+      releaseScroll()
     }
   }, [visible])
 
