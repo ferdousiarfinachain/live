@@ -11,13 +11,16 @@
 }
 
 .page {
-  min-height: 100vh;
-  min-height: 100dvh;
+  flex: 1 0 auto;
+  width: 100%;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
-  overflow-y: visible;
-  background:
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background-color: #050b16;
+  background-image:
     radial-gradient(circle at 14% 22%, rgba(84, 212, 255, 0.22), transparent 40%),
     radial-gradient(circle at 84% 18%, rgba(112, 140, 255, 0.2), transparent 42%),
     radial-gradient(circle at 74% 76%, rgba(158, 108, 255, 0.17), transparent 36%),
@@ -42,8 +45,7 @@
     ),
     repeating-linear-gradient(90deg, rgba(131, 182, 255, 0.05) 0 1px, transparent 1px 80px),
     repeating-linear-gradient(0deg, rgba(131, 182, 255, 0.04) 0 1px, transparent 1px 80px),
-    linear-gradient(180deg, #070f2a 0%, #081331 38%, #09162e 70%, #050b16 100%),
-    var(--bg);
+    linear-gradient(180deg, #070f2a 0%, #081331 38%, #09162e 70%, #050b16 100%);
   color: var(--ink);
   font-family: Inter, Arial, sans-serif;
   position: relative;
@@ -51,7 +53,7 @@
 }
 
 .page-main {
-  flex: 1;
+  flex: 1 0 auto;
   width: 100%;
   padding: calc(var(--header-bar-h) + 34px) 18px 42px;
   display: flex;
@@ -1013,10 +1015,10 @@
 }
 
 .site-footer {
-  margin-top: auto;
-  min-height: 170px;
   flex-shrink: 0;
-  background: linear-gradient(180deg, rgba(5, 11, 22, 0) 0%, #050b16 36%);
+  width: 100%;
+  margin-top: 0;
+  background-color: #050b16;
 }
 
 .footer-overlay {
@@ -1566,7 +1568,7 @@ html.scroll-locked {
 
   
   .page-main {
-    padding: calc(var(--header-bar-h) + 16px) 10px 24px;
+    padding: calc(var(--header-bar-h) + 16px) 10px calc(24px + env(safe-area-inset-bottom, 0px));
     gap: 28px;
   }
 
@@ -1594,7 +1596,7 @@ html.scroll-locked {
   }
 
   .site-footer {
-    min-height: 156px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .footer-overlay {
