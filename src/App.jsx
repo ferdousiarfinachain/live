@@ -130,6 +130,12 @@ function App() {
     setMenuOpen(false)
   }
 
+  const handleLandingPageClick = () => {
+    if (menuOpen) {
+      setMenuOpen(false)
+    }
+  }
+
   return (
     <div className="page">
       <StarfieldBackground />
@@ -226,7 +232,7 @@ function App() {
         </nav>
       </header>
 
-      <main className="page-main">
+      <main className="page-main" onClick={handleLandingPageClick}>
         <section id="home" className="section-anchor">
           <AboutFeaturesSection
             isConnected={isConnected}
