@@ -725,6 +725,7 @@
   white-space: nowrap;
   flex: 1 1 0;
   min-width: 0;
+  margin-left: 5px;
 }
 
 .presale-progress {
@@ -989,6 +990,7 @@
   font-size: clamp(0.8rem, 1vw, 0.9rem);
   font-weight: 600;
   line-height: 1.2;
+  margin-left: 28px;
 }
 
 .presale-input-field {
@@ -1335,7 +1337,7 @@
     font-size: clamp(0.7rem, 3.3vw, 0.92rem);
     line-height: 1.25;
     white-space: nowrap;
-    margin-left: 11px;
+    margin-left: 7px;
   }
 
   .hero-title {
