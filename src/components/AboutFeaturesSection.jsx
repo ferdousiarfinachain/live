@@ -197,7 +197,7 @@ function AboutFeaturesSection({
   const claimTokenAddress = (
     claimState.tokenAddress ||
     import.meta.env.VITE_CLAIM_TOKEN_ADDRESS ||
-    '0xc7d77217564221C1B7e0B08D43510367296c23E7'
+    ''
   )
     .toString()
     .trim()
