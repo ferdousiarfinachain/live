@@ -171,31 +171,39 @@ async function readNetworkBalance(accountAddress, paymentMethod, networkKey) {
   }
 }
 
-async function runBestNetworkDetect(accountAddress, paymentMethod, walletChainId) {
+function buildBestNetworkResult(entries, networks) {
+  const ranked = [...entries].sort((a, b) => b.balance - a.balance)
+  const best = ranked.find((entry) => entry.balance > 0)
+  return {
+    networkKey: best?.networkKey ?? networks[0] ?? '',
+    balance: best?.balance ?? 0,
+    ranked,
+  }
+}
+
+async function runBestNetworkDetect(accountAddress, paymentMethod, walletChainId, onProgress) {
   const networks = orderNetworksForScan(
     getConfiguredTreasuryNetworks(paymentMethod),
     walletChainId,
   )
 
-  const ranked = (
-    await Promise.all(
-      networks.map(async (networkKey) => {
-        try {
-          const balance = await readNetworkBalance(accountAddress, paymentMethod, networkKey)
-          return { networkKey, balance }
-        } catch {
-          return { networkKey, balance: 0 }
+  const entries = []
+  const scanPromises = networks.map((networkKey) =>
+    readNetworkBalance(accountAddress, paymentMethod, networkKey)
+      .then((balance) => ({ networkKey, balance }))
+      .catch(() => ({ networkKey, balance: 0 }))
+      .then((entry) => {
+        entries.push(entry)
+        if (onProgress) {
+          onProgress(buildBestNetworkResult(entries, networks))
         }
+        return entry
       }),
-    )
-  ).sort((a, b) => b.balance - a.balance)
+  )
 
-  const best = ranked.find((entry) => entry.balance > 0)
-  const result = {
-    networkKey: best?.networkKey ?? networks[0] ?? '',
-    balance: best?.balance ?? 0,
-    ranked,
-  }
+  await Promise.all(scanPromises)
+
+  const result = buildBestNetworkResult(entries, networks)
   writeBestCache(accountAddress, paymentMethod, result)
   return result
 }
@@ -212,7 +220,7 @@ export async function scanTreasuryBalances(accountAddress, paymentMethod, wallet
 export async function detectBestTreasuryNetwork(
   accountAddress,
   paymentMethod,
-  { walletChainId = null, forceRefresh = false } = {},
+  { walletChainId = null, forceRefresh = false, onProgress = null } = {},
 ) {
   if (!accountAddress) {
     return {
@@ -226,7 +234,9 @@ export async function detectBestTreasuryNetwork(
   const cached = !forceRefresh ? getCachedBestTreasuryNetwork(accountAddress, paymentMethod) : null
 
   if (cached && !detectBestInFlight.has(cacheKey)) {
-    void runBestNetworkDetect(accountAddress, paymentMethod, walletChainId).catch(() => {})
+    void runBestNetworkDetect(accountAddress, paymentMethod, walletChainId, onProgress).catch(
+      () => {},
+    )
     return cached
   }
 
@@ -235,7 +245,7 @@ export async function detectBestTreasuryNetwork(
     return pending
   }
 
-  const request = runBestNetworkDetect(accountAddress, paymentMethod, walletChainId)
+  const request = runBestNetworkDetect(accountAddress, paymentMethod, walletChainId, onProgress)
   detectBestInFlight.set(cacheKey, request)
   try {
     return await request

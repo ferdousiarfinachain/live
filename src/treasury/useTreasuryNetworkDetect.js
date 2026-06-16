@@ -55,9 +55,20 @@ export function useTreasuryNetworkDetect(paymentMethod, enabled = true) {
       setIsDetecting(true)
 
       try {
+        let gotProgress = false
         const result = await detectBestTreasuryNetwork(address, paymentMethod, {
           walletChainId,
           forceRefresh,
+          onProgress: (progress) => {
+            if (detectSeqRef.current !== seq) {
+              return
+            }
+            applyDetectResult(progress)
+            if (!gotProgress) {
+              gotProgress = true
+              setIsDetecting(false)
+            }
+          },
         })
         if (detectSeqRef.current === seq) {
           applyDetectResult(result)
@@ -109,7 +120,20 @@ export function useTreasuryNetworkDetect(paymentMethod, enabled = true) {
     }
 
     let cancelled = false
-    detectBestTreasuryNetwork(address, paymentMethod, { walletChainId })
+    let gotProgress = Boolean(cached)
+    detectBestTreasuryNetwork(address, paymentMethod, {
+      walletChainId,
+      onProgress: (progress) => {
+        if (cancelled) {
+          return
+        }
+        applyDetectResult(progress)
+        if (!gotProgress) {
+          gotProgress = true
+          setIsDetecting(false)
+        }
+      },
+    })
       .then((result) => {
         if (!cancelled) {
           applyDetectResult(result)
