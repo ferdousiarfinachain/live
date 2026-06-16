@@ -20,8 +20,8 @@ export function getAppMetadata() {
   const url = getAppMetadataUrl()
 
   return {
-    name: 'Novex Labs',
-    description: 'Connect your wallet to Novex Labs',
+    name: 'Novex Fi',
+    description: 'Connect your wallet to Novex Fi',
     url,
     icons: [`${url}/social-preview.png`],
   }

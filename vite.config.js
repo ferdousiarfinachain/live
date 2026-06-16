@@ -20,7 +20,7 @@ export default defineConfig({
       name: 'inject-og-urls',
       transformIndexHtml(html) {
         const origin = resolveDeployOrigin()
-        const ogImageUrl = origin ? `${origin}/social-preview.png` : '/social-preview.png'
+        const ogImageUrl = origin ? `${origin}/social-preview-og.jpg` : '/social-preview-og.jpg'
         const ogPageUrl = origin ? `${origin}/` : ''
         return html
           .replace(/%OG_IMAGE_URL%/g, ogImageUrl)
