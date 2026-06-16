@@ -30,6 +30,17 @@ function formatCompactUsd(value) {
     maximumFractionDigits: 0,
   }).format(value)
 }
+
+function formatMaxPayInput(amount, paymentMethod) {
+  const n = Number(String(amount ?? '').trim())
+  if (!Number.isFinite(n) || n <= 0) {
+    return ''
+  }
+  const precision = paymentMethod === 'USDT' || paymentMethod === 'USDC' ? 2 : 6
+  const factor = 10 ** precision
+  const floored = Math.floor(n * factor) / factor
+  return floored > 0 ? String(floored) : ''
+}
 const CLAIM_TOKEN_SYMBOL = 'NOVEX'
 const CLAIM_PURCHASED_AMOUNT_FALLBACK = 0
 import bnbLogo from 'cryptocurrency-icons/svg/color/bnb.svg'
@@ -267,12 +278,12 @@ function AboutFeaturesSection({
       return
     }
     if (hasValidMax) {
-      setPayAmount(maxPayRaw)
+      setPayAmount(formatMaxPayInput(maxPayRaw, selectedPayment))
       return
     }
     const amount = await fetchMaxPayAmount()
     if (amount) {
-      setPayAmount(amount)
+      setPayAmount(formatMaxPayInput(amount, selectedPayment))
     }
   }
 
