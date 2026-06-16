@@ -3,20 +3,15 @@ import { useAccount } from 'wagmi'
 import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
 import {
-  getConfiguredTreasuryNetworks,
-  isTreasuryRouteConfigured,
-} from '../contracts/config.js'
-import {
-  getTreasuryQuoteNetworkKey,
   isTreasuryPaymentMethod,
   isTreasuryQuoteEnabled,
 } from '../lib/paymentMethods.js'
+import { useTreasuryNetworkDetect } from '../treasury/useTreasuryNetworkDetect.js'
 import { usePresaleBuy, usePresaleQuote } from '../wallet/usePresaleBuy'
 import { usePresaleClaim } from '../wallet/usePresaleClaim'
 import { usePresaleStats } from '../wallet/usePresaleStats'
 import { usePaymentBalance } from '../wallet/usePaymentBalance'
 import { usePaymentChainSwitch } from '../wallet/usePaymentChainSwitch'
-import { useTreasuryNetworkDetect } from '../wallet/useTreasuryNetworkDetect'
 import PurchaseSuccessModal from '../wallet/PurchaseSuccessModal'
 import ClaimSuccessModal from './ClaimSuccessModal'
 
@@ -104,15 +99,13 @@ function AboutFeaturesSection({
     countdownRemainingMs != null &&
     countdownRemainingMs <= 0
   const treasurySelected = isTreasuryPaymentMethod(selectedPayment)
-  const configuredTreasuryNetworks = useMemo(
-    () => (treasurySelected ? getConfiguredTreasuryNetworks(selectedPayment) : []),
-    [selectedPayment, treasurySelected],
-  )
-
-  const { treasuryNetworkKey: selectedTreasuryNetwork } = useTreasuryNetworkDetect(
-    selectedPayment,
-    isConnected && treasurySelected,
-  )
+  const {
+    treasuryNetworkKey,
+    detectedBalance: treasuryDetectedBalance,
+    configuredNetworks: configuredTreasuryNetworks,
+    treasuryReady,
+  } = useTreasuryNetworkDetect(selectedPayment, isConnected)
+  const selectedTreasuryNetwork = treasuryNetworkKey
 
   useEffect(() => {
     setPayAmount('')
@@ -135,14 +128,10 @@ function AboutFeaturesSection({
   }, [])
 
   const paymentMethodReady = treasurySelected
-    ? isTreasuryRouteConfigured(selectedPayment, selectedTreasuryNetwork)
+    ? treasuryReady
     : isPresaleConfigured
-  const quoteTreasuryNetwork = getTreasuryQuoteNetworkKey(
-    selectedPayment,
-    selectedTreasuryNetwork,
-  )
   const quoteEnabled = treasurySelected
-    ? isTreasuryQuoteEnabled(selectedPayment) && isPresaleConfigured
+    ? isTreasuryQuoteEnabled(selectedPayment) && treasuryReady && isPresaleConfigured
     : isPresaleConfigured
   const presaleActualPriceLabel =
     presaleStats.tokenPriceLabel || (presaleStats.fromContract ? '' : '$0.0007')
@@ -150,15 +139,19 @@ function AboutFeaturesSection({
     selectedPayment,
     payAmount,
     quoteEnabled,
-    quoteTreasuryNetwork,
+    {
+      tokenPriceUsd: presaleStats.tokenPriceUsd,
+      treasuryNetworkKey: selectedTreasuryNetwork,
+    },
   )
   const balanceEnabled =
     Boolean(walletAddress) &&
-    (treasurySelected ? configuredTreasuryNetworks.length > 0 : paymentMethodReady)
-  const { maxPayAmount, isLoadingMaxPay, fetchMaxPayAmount } = usePaymentBalance(
+    (treasurySelected ? treasuryReady : paymentMethodReady)
+  const { maxPayAmount, isLoadingMaxPay, fetchMaxPayAmount, refreshMaxPay } = usePaymentBalance(
     selectedPayment,
     selectedTreasuryNetwork,
     balanceEnabled,
+    treasuryDetectedBalance,
   )
   const receiveAmount = quotedReceive
 
@@ -300,9 +293,9 @@ function AboutFeaturesSection({
       }
       return
     }
-    if (treasurySelected && !isTreasuryRouteConfigured(selectedPayment, selectedTreasuryNetwork)) {
+    if (treasurySelected && !treasuryReady) {
       window.alert(
-        `${selectedPayment} on the selected network is not configured. Check .env treasury settings.`,
+        `${selectedPayment} is not configured. Check .env treasury settings.`,
       )
       return
     }
@@ -333,6 +326,8 @@ function AboutFeaturesSection({
       })
       setPayAmount('')
       refreshMaxPay()
+    } catch {
+      // buy() already sets buyError for the user.
     } finally {
       setIsPayConfirming(false)
     }
@@ -496,7 +491,7 @@ function AboutFeaturesSection({
                 className="presale-connect-btn"
                 disabled={payButtonDisabled}
                 onClick={() => {
-                  handleProceedToPay().catch(() => {})
+                  void handleProceedToPay()
                 }}
               >
                 {payButtonLabel}

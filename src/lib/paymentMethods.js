@@ -1,3 +1,5 @@
+import { isTreasuryConfigured } from '../treasury/chains.js'
+
 export const TREASURY_PAYMENT_METHODS = ['ETH', 'USDT', 'USDC']
 
 export function isTreasuryPaymentMethod(paymentMethod) {
@@ -5,12 +7,9 @@ export function isTreasuryPaymentMethod(paymentMethod) {
 }
 
 export function getTreasuryQuoteNetworkKey(paymentMethod, treasuryNetworkKey = '') {
-  if (paymentMethod === 'ETH') {
-    return treasuryNetworkKey || 'ethereum'
-  }
   return treasuryNetworkKey
 }
 
 export function isTreasuryQuoteEnabled(paymentMethod) {
-  return isTreasuryPaymentMethod(paymentMethod)
+  return isTreasuryPaymentMethod(paymentMethod) && isTreasuryConfigured(paymentMethod)
 }

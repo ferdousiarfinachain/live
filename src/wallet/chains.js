@@ -60,8 +60,6 @@ export const bscMainnetChain = defineChain({
   },
 })
 
-export const bscTreasuryChain = bscMainnetChain
-
 export { arbitrum, avalanche, base, ethereum, optimism, polygon }
 
 const chainsById = new Map(

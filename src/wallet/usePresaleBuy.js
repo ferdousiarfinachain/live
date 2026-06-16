@@ -4,17 +4,11 @@ import { readContract, waitForTransactionReceipt, writeContract } from 'wagmi/ac
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { appChain, isPresaleConfigured, presaleAbiExport } from '../contracts/config.js'
 import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
-import { fetchEthUsdPrice } from '../lib/chainlinkEthPrice.js'
-import { estimateTokensFromTreasuryPayment } from '../lib/presaleEstimate.js'
+import { estimateTreasuryTokens, estimateTreasuryTokensSync } from '../treasury/estimateTokens.js'
+import { getCachedEthUsdPrice } from '../treasury/ethPrice.js'
+import { payViaTreasury } from '../treasury/execute.js'
 import { ensureAppChain } from './useAutoSwitchChain.js'
-import {
-  getCachedPresaleTokenPriceUsd,
-  getPresaleContract,
-  quoteReceiveAmount,
-  readPresaleTokenPriceUsd,
-} from './presaleContract.js'
-import { detectBestTreasuryNetwork } from './treasuryBalanceScan.js'
-import { payViaTreasury } from './treasuryPayment.js'
+import { getPresaleContract, quoteReceiveAmount } from './presaleContract.js'
 import { wagmiConfig } from './wagmiConfig.js'
 
 function formatBuyError(error) {
@@ -36,6 +30,13 @@ function formatBuyError(error) {
 
   if (message.includes('user rejected') || message.includes('user denied')) {
     return 'Transaction cancelled in wallet.'
+  }
+  if (
+    message.includes('connector not connected') ||
+    message.includes('wallet not connected') ||
+    message.includes('connect your wallet')
+  ) {
+    return 'Connect your wallet first.'
   }
   if (message.includes('sale not active')) {
     return 'Presale is not active right now.'
@@ -62,9 +63,10 @@ function formatBuyError(error) {
   if (
     message.includes('payment token address is missing') ||
     message.includes('unsupported token') ||
-    message.includes('not configured')
+    message.includes('not configured') ||
+    message.includes('not available yet')
   ) {
-    return 'This payment method is not configured yet.'
+    return error.message || 'This payment method is not configured yet.'
   }
   if (message.includes('amount too small') || message.includes('no payment sent')) {
     return 'Enter a valid amount to pay.'
@@ -73,26 +75,19 @@ function formatBuyError(error) {
     return 'Transaction failed. Please try again.'
   }
 
-  return 'Purchase failed. Please try again.'
+  return error.shortMessage || error.message || 'Purchase failed. Please try again.'
 }
 
-function isInstantStableQuote(paymentMethod) {
-  return paymentMethod === 'USDT' || paymentMethod === 'USDC'
-}
-
-export function usePresaleQuote(paymentMethod, payAmount, enabled = true, treasuryNetworkKey = '') {
+export function usePresaleQuote(
+  paymentMethod,
+  payAmount,
+  enabled = true,
+  { tokenPriceUsd = null, treasuryNetworkKey = '' } = {},
+) {
   const [quotedReceive, setQuotedReceive] = useState('')
   const [isQuoting, setIsQuoting] = useState(false)
   const prevMethodRef = useRef(paymentMethod)
   const prevAmountRef = useRef(payAmount)
-
-  useEffect(() => {
-    if (!enabled || !isPresaleConfigured || !isInstantStableQuote(paymentMethod)) {
-      return undefined
-    }
-    readPresaleTokenPriceUsd().catch(() => {})
-    return undefined
-  }, [enabled, paymentMethod])
 
   useEffect(() => {
     if (!enabled) {
@@ -109,41 +104,29 @@ export function usePresaleQuote(paymentMethod, payAmount, enabled = true, treasu
     }
 
     if (isTreasuryPaymentMethod(paymentMethod)) {
-      let cancelled = false
-      const cachedTokenPrice = getCachedPresaleTokenPriceUsd()
-      const hasInstantStableQuote = isInstantStableQuote(paymentMethod) && cachedTokenPrice
-
-      if (hasInstantStableQuote) {
-        const instantQuote = estimateTokensFromTreasuryPayment(paymentMethod, amount, {
-          tokenPriceUsd: cachedTokenPrice,
-        })
-        if (instantQuote) {
-          setQuotedReceive(instantQuote)
-        }
+      const syncQuote = estimateTreasuryTokensSync(paymentMethod, amount, {
+        tokenPriceUsd,
+        ethUsdPrice: getCachedEthUsdPrice(),
+      })
+      if (syncQuote) {
+        setQuotedReceive(syncQuote)
         setIsQuoting(false)
-      } else {
-        setIsQuoting(true)
+        return undefined
       }
 
-      const ethPricePromise =
-        paymentMethod === 'ETH' && treasuryNetworkKey
-          ? fetchEthUsdPrice(treasuryNetworkKey)
-          : Promise.resolve(null)
-
-      Promise.all([ethPricePromise, readPresaleTokenPriceUsd()])
-        .then(([ethUsdPrice, tokenPriceUsd]) => {
-          if (cancelled) {
-            return
+      let cancelled = false
+      setIsQuoting(true)
+      estimateTreasuryTokens(paymentMethod, amount, {
+        tokenPriceUsd,
+        treasuryNetworkKey,
+      })
+        .then((nextQuote) => {
+          if (!cancelled) {
+            setQuotedReceive(nextQuote)
           }
-          setQuotedReceive(
-            estimateTokensFromTreasuryPayment(paymentMethod, amount, {
-              ethUsdPrice,
-              tokenPriceUsd,
-            }),
-          )
         })
         .catch(() => {
-          if (!cancelled && !hasInstantStableQuote) {
+          if (!cancelled) {
             setQuotedReceive('')
           }
         })
@@ -192,7 +175,7 @@ export function usePresaleQuote(paymentMethod, payAmount, enabled = true, treasu
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [enabled, paymentMethod, payAmount, treasuryNetworkKey])
+  }, [enabled, paymentMethod, payAmount, tokenPriceUsd, treasuryNetworkKey])
 
   return { quotedReceive, isQuoting }
 }
@@ -208,7 +191,7 @@ export function usePresaleBuy() {
     if (!buyError) {
       return undefined
     }
-    const timerId = window.setTimeout(() => setBuyError(''), 2000)
+    const timerId = window.setTimeout(() => setBuyError(''), 8000)
     return () => window.clearTimeout(timerId)
   }, [buyError])
 
@@ -223,21 +206,28 @@ export function usePresaleBuy() {
         throw new Error('Connect your wallet first.')
       }
 
+      if (isTreasuryPaymentMethod(paymentMethod)) {
+        setIsBuying(true)
+        try {
+          return await payViaTreasury({
+            paymentMethod,
+            amountHuman,
+            networkKey: treasuryNetworkKey,
+            accountAddress: address,
+            walletChainId,
+            switchChain: switchChainAsync,
+          })
+        } catch (error) {
+          const message = formatBuyError(error)
+          setBuyError(message)
+          throw error
+        } finally {
+          setIsBuying(false)
+        }
+      }
+
       setIsBuying(true)
       try {
-        if (isTreasuryPaymentMethod(paymentMethod)) {
-          const resolvedTreasuryNetworkKey =
-            (await detectBestTreasuryNetwork(address, paymentMethod, walletChainId)) ||
-            treasuryNetworkKey
-          return payViaTreasury({
-            chainId: walletChainId,
-            switchChain: switchChainAsync,
-            paymentMethod,
-            treasuryNetworkKey: resolvedTreasuryNetworkKey,
-            amountHuman,
-          })
-        }
-
         const presaleContract = getPresaleContract()
         if (!presaleContract) {
           throw new Error('Presale contract is not configured in .env')
