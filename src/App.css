@@ -102,7 +102,7 @@
 
 .about-section__content h2 {
   font-size: clamp(1.85rem, 2.6vw, 2.5rem);
-  color: #ff7b00;
+  color: #ff6c00;
   font-weight: 900;
   line-height: 1.08;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
@@ -227,9 +227,9 @@
 
 .about-section__cta {
   margin-top: 8px;
-  border: 2px solid #ff7b00;
+  border: 1px solid #ff7b00;
   border-radius: 12px;
-  background: linear-gradient(135deg,  #ff7b00 0%, #ff7b00 52%,  #ff7b00 100%);
+  background: linear-gradient(135deg,  #ff5e00 82%);
   color: #ffffff;
   font-size: clamp(0.98rem, 1.3vw, 1.1rem);
   font-weight: 900;
@@ -339,7 +339,7 @@
 }
 
 .how-to-buy__title span {
-  color: #ff7a00;
+  color: #ff6c00;;
 }
 
 .how-to-buy__subtitle {
@@ -495,7 +495,7 @@
   margin-top: clamp(36px, 4.5vw, 52px);
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(180deg, #ff9118 0%, #ff7608 62%, #f26500 100%);
+  background: linear-gradient(180deg, #ff5100 82%);
   color: #fff8ef;
   font-family: Inter, Arial, sans-serif;
   font-size: 1.02rem;
@@ -503,10 +503,6 @@
   letter-spacing: 0.02em;
   padding: 12px 24px;
   cursor: pointer;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 228, 189, 0.65),
-    0 8px 24px rgba(255, 112, 8, 0.42),
-    0 0 18px rgba(255, 120, 0, 0.38);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
@@ -1255,7 +1251,7 @@ html.scroll-locked {
 .cta-btn {
   border: 0;
   border-radius: 10px;
-  background: linear-gradient(180deg, #fa7901 0%, #f06400 78%, #df5600 100%);
+  background: linear-gradient(180deg, #ff5e00 0%, #ff5e00 78%, #ff5e00 100%);
   color: #ffffff;
   font-family: Inter;
   font-size: 19px;
@@ -1279,7 +1275,7 @@ html.scroll-locked {
 }
 
 .cta-btn:hover {
-  background: linear-gradient(180deg, #ff962f 0%, #f46f12 78%, #e05d08 100%);
+  background: linear-gradient(180deg, #ff8000 0%, #f46f12 78%, #e05d08 100%);
   transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.3),

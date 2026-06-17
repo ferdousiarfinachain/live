@@ -17,8 +17,8 @@ import PurchaseSuccessModal from '../wallet/PurchaseSuccessModal'
 import ClaimSuccessModal from './ClaimSuccessModal'
 
 const PRESALE_LISTING_PRICE_LABEL = '$0.0023'
-const PRESALE_USD_GOAL = 1_000_000
-const PRESALE_USD_RAISED = 2_211.26
+const PRESALE_USD_GOAL = 2_000_000
+const PRESALE_USD_RAISED = 10_122.26
 const CLAIM_USD_RAISED = PRESALE_USD_RAISED
 
 function formatCompactUsd(value) {
@@ -489,7 +489,7 @@ function AboutFeaturesSection({
               </div>
             </label>
             <label className="presale-input-box">
-              <span>Receive $NOVEX</span>
+              <span>Receive $NVX Token</span>
               <div className="presale-input-field presale-input-field--readonly">
                 <input
                   className="presale-input-native presale-input-native--readonly"

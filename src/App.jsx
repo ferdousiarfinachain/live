@@ -249,7 +249,7 @@ function App() {
               <img src="/about.png" alt="" />
             </div>
             <article className="about-section__content">
-              <h2>About Novex</h2>
+              <h2>About Our $NVX Token</h2>
               <h3>The Future of Cross-Chain Participation</h3>
               <p>
                 Novex is building a simple and accessible presale ecosystem that removes
@@ -262,7 +262,7 @@ function App() {
                 without unnecessary complexity.
               </p>
               <div className="about-section__why-card">
-                <p className="about-section__why">Why Novex?</p>
+                <p className="about-section__why">Why Novex ($NVX) Token?</p>
                 <ul>
                   <li>Multi-chain payment support</li>
                   <li>Transparent presale allocation</li>
@@ -281,7 +281,7 @@ function App() {
                 className="about-section__cta"
                 onClick={scrollToPresalePanel}
               >
-                Join Presale
+                Buy $NVX 
               </button>
             </article>
           </div>
@@ -292,7 +292,7 @@ function App() {
             <div className="step-section__inner how-to-buy__inner">
               <div className="how-to-buy__header">
                 <h1 className="how-to-buy__title">
-                  How to Buy <span>$NOVEX</span>
+                  How to Buy <span>$NVX Token</span>
                 </h1>
                 <p className="how-to-buy__subtitle">
                   Join the Novex presale in four simple steps.
@@ -313,7 +313,7 @@ function App() {
                 ))}
               </div>
               <button type="button" className="how-to-buy__cta" onClick={scrollToPresalePanel}>
-                BUY $NOVEX NOW
+                BUY $NVX TOKEN NOW
               </button>
             </div>
           </section>

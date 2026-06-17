@@ -30,7 +30,7 @@ const roadmapPhases = [
     tone: 'growth',
     points: [
       'DEX listing',
-      'Liquidity deployment',
+      'CEX listing',
       'Token claim activation',
       'Market tracking integrations',
       'Ecosystem expansion',

@@ -211,7 +211,7 @@ export default function TokenomicsSection({ id = 'tokenomics' }) {
             <h2 className="tokenomics-section__title">Tokenomics</h2>
             <span className="tokenomics-section__badge">
               <span className="tokenomics-section__badge-dot" aria-hidden="true" />
-              $NOVEX Token
+              $NVX Token
             </span>
           </div>
           <p className="tokenomics-section__subtitle">

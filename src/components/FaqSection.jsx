@@ -9,7 +9,7 @@ const faqItems = [
   },
   {
     question: 'What payment methods are supported?',
-    answer: 'You can participate using BNB, ETH, USDT, or USDC.',
+    answer: 'Pay with BNB, ETH, USDT, or USDC across 7 popular networks for a seamless multi-chain experience.',
   },
   {
     question: 'Which blockchain networks are supported?',
@@ -24,14 +24,14 @@ const faqItems = [
   {
     question: 'Where are presale contributions settled?',
     answer:
-      'All contributions are securely processed into the Novex ecosystem on BNB Smart Chain.',
+      'All presale contributions are securely processed and settled within the Novex ecosystem on BNB Smart Chain, ensuring transparency, security, and seamless participation.',
   },
   {
     question: 'Which wallets are supported?',
-    answer: 'MetaMask, Rabby, Trust Wallet, and most EVM-compatible wallets.',
+    answer: 'Supports leading wallets including ( MetaMask, Trust Wallet, Coinbase Wallet, Binance Wallet ), and 530+ additional wallet integrations for seamless access and connectivity.',
   },
   {
-    question: 'When can I claim my $NOVEX tokens?',
+    question: 'When can I claim my NOVEX ($NVX)  tokens?',
     answer:
       'Token claims become available according to the official vesting and token generation event schedule.',
   },
