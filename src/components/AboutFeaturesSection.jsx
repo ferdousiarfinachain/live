@@ -495,7 +495,7 @@ function AboutFeaturesSection({
                   className="presale-input-native presale-input-native--readonly"
                   type="text"
                   value={receiveAmount}
-                  placeholder="0.00"
+                  placeholder="0"
                   readOnly
                   tabIndex={-1}
                   aria-label="Novex tokens you will receive"
