@@ -60,7 +60,8 @@ export function useTreasuryBalance(
     }
 
     const cached = getCachedBestTreasuryNetwork(address, paymentMethod)
-    const balance = detectedBalance > 0 ? detectedBalance : (cached?.balance ?? 0)
+    const balance =
+      detectedBalance > 0 ? detectedBalance : cached?.balance > 0 ? cached.balance : 0
     const formatted = formatTreasuryMaxPay(balance)
 
     setMaxPayAmount(formatted)

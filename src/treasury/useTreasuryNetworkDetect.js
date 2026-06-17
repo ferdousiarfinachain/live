@@ -3,6 +3,7 @@ import { useAccount, useChainId } from 'wagmi'
 import {
   detectBestTreasuryNetwork,
   getCachedBestTreasuryNetwork,
+  warmAllTreasuryBalanceCaches,
 } from './scan.js'
 import {
   getConfiguredTreasuryNetworks,
@@ -93,6 +94,14 @@ export function useTreasuryNetworkDetect(paymentMethod, enabled = true) {
   )
 
   useEffect(() => {
+    if (!enabled || !address || !isWalletConfigured) {
+      return undefined
+    }
+    warmAllTreasuryBalanceCaches(address, walletChainId)
+    return undefined
+  }, [address, enabled, walletChainId])
+
+  useEffect(() => {
     if (!enabled || !isTreasuryPaymentMethod(paymentMethod)) {
       setTreasuryNetworkKey('')
       setDetectedBalance(0)
@@ -107,11 +116,16 @@ export function useTreasuryNetworkDetect(paymentMethod, enabled = true) {
       return undefined
     }
 
+    const seq = detectSeqRef.current + 1
+    detectSeqRef.current = seq
+
     const cached = getCachedBestTreasuryNetwork(address, paymentMethod)
     if (cached) {
       applyDetectResult(cached)
       setIsDetecting(false)
     } else {
+      setTreasuryNetworkKey(configuredNetworks[0] ?? '')
+      setDetectedBalance(0)
       setIsDetecting(true)
     }
 
@@ -124,7 +138,7 @@ export function useTreasuryNetworkDetect(paymentMethod, enabled = true) {
     detectBestTreasuryNetwork(address, paymentMethod, {
       walletChainId,
       onProgress: (progress) => {
-        if (cancelled) {
+        if (cancelled || detectSeqRef.current !== seq) {
           return
         }
         applyDetectResult(progress)
@@ -135,12 +149,12 @@ export function useTreasuryNetworkDetect(paymentMethod, enabled = true) {
       },
     })
       .then((result) => {
-        if (!cancelled) {
+        if (!cancelled && detectSeqRef.current === seq) {
           applyDetectResult(result)
         }
       })
       .catch(() => {
-        if (!cancelled && !cached) {
+        if (!cancelled && detectSeqRef.current === seq && !cached) {
           applyDetectResult({
             networkKey: configuredNetworks[0] ?? '',
             balance: 0,
@@ -148,7 +162,7 @@ export function useTreasuryNetworkDetect(paymentMethod, enabled = true) {
         }
       })
       .finally(() => {
-        if (!cancelled) {
+        if (!cancelled && detectSeqRef.current === seq) {
           setIsDetecting(false)
         }
       })

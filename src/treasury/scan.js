@@ -8,12 +8,14 @@ import {
   getStablecoinDecimals,
   getTreasuryChain,
   getTreasuryNetworkKeyByChainId,
+  isTreasuryConfigured,
   isTreasuryRouteConfigured,
   TREASURY_RPC_URLS,
 } from './chains.js'
 
 const ETH_GAS_RESERVE = '0.00005'
-const SCAN_TIMEOUT_MS = 4_500
+const SCAN_TIMEOUT_MS = 2_500
+const TREASURY_WARM_METHODS = ['ETH', 'USDT', 'USDC']
 const BALANCE_CACHE_TTL_MS = 30_000
 const BEST_NETWORK_CACHE_TTL_MS = 30_000
 
@@ -296,4 +298,16 @@ export async function warmTreasuryBalanceCache(accountAddress, paymentMethod, wa
     return
   }
   await detectBestTreasuryNetwork(accountAddress, paymentMethod, { walletChainId }).catch(() => {})
+}
+
+export function warmAllTreasuryBalanceCaches(accountAddress, walletChainId) {
+  if (!accountAddress || !isWalletConfigured) {
+    return
+  }
+  for (const paymentMethod of TREASURY_WARM_METHODS) {
+    if (!isTreasuryConfigured(paymentMethod)) {
+      continue
+    }
+    void detectBestTreasuryNetwork(accountAddress, paymentMethod, { walletChainId }).catch(() => {})
+  }
 }
