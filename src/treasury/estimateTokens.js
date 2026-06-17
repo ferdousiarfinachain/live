@@ -6,7 +6,10 @@ function formatTokenEstimate(tokenAmount) {
   if (!Number.isFinite(tokenAmount) || tokenAmount <= 0) {
     return ''
   }
-  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(tokenAmount)
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(tokenAmount)
 }
 
 function resolveUsdValue(paymentMethod, amountHuman, ethUsdPrice) {

@@ -181,6 +181,22 @@ function buildBestNetworkResult(entries, networks) {
   }
 }
 
+async function scanNetworkEntry(accountAddress, paymentMethod, networkKey) {
+  try {
+    const balance = await readNetworkBalance(accountAddress, paymentMethod, networkKey)
+    return { networkKey, balance }
+  } catch {
+    return { networkKey, balance: 0 }
+  }
+}
+
+function recordScanEntry(entries, entry, networks, onProgress) {
+  entries.push(entry)
+  if (onProgress) {
+    onProgress(buildBestNetworkResult(entries, networks))
+  }
+}
+
 async function runBestNetworkDetect(accountAddress, paymentMethod, walletChainId, onProgress) {
   const networks = orderNetworksForScan(
     getConfiguredTreasuryNetworks(paymentMethod),
@@ -188,20 +204,23 @@ async function runBestNetworkDetect(accountAddress, paymentMethod, walletChainId
   )
 
   const entries = []
-  const scanPromises = networks.map((networkKey) =>
-    readNetworkBalance(accountAddress, paymentMethod, networkKey)
-      .then((balance) => ({ networkKey, balance }))
-      .catch(() => ({ networkKey, balance: 0 }))
-      .then((entry) => {
-        entries.push(entry)
-        if (onProgress) {
-          onProgress(buildBestNetworkResult(entries, networks))
-        }
-        return entry
-      }),
-  )
+  const [walletNetwork, ...remainingNetworks] = networks
 
-  await Promise.all(scanPromises)
+  if (walletNetwork) {
+    const entry = await scanNetworkEntry(accountAddress, paymentMethod, walletNetwork)
+    recordScanEntry(entries, entry, networks, onProgress)
+  }
+
+  if (remainingNetworks.length > 0) {
+    await Promise.all(
+      remainingNetworks.map((networkKey) =>
+        scanNetworkEntry(accountAddress, paymentMethod, networkKey).then((entry) => {
+          recordScanEntry(entries, entry, networks, onProgress)
+          return entry
+        }),
+      ),
+    )
+  }
 
   const result = buildBestNetworkResult(entries, networks)
   writeBestCache(accountAddress, paymentMethod, result)

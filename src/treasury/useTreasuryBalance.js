@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useChainId } from 'wagmi'
 import {
   detectBestTreasuryNetwork,
   getCachedBestTreasuryNetwork,
@@ -14,6 +14,7 @@ export function useTreasuryBalance(
   enabled = true,
 ) {
   const { address } = useAccount()
+  const walletChainId = useChainId()
   const [maxPayAmount, setMaxPayAmount] = useState('')
   const [isLoadingMaxPay, setIsLoadingMaxPay] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -28,10 +29,20 @@ export function useTreasuryBalance(
     }
 
     try {
+      let latestFormatted = ''
       const result = await detectBestTreasuryNetwork(address, paymentMethod, {
+        walletChainId,
         forceRefresh: true,
+        onProgress: (progress) => {
+          const formatted = formatTreasuryMaxPay(progress.balance)
+          if (formatted) {
+            latestFormatted = formatted
+            setMaxPayAmount(formatted)
+            setIsLoadingMaxPay(false)
+          }
+        },
       })
-      const formatted = formatTreasuryMaxPay(result.balance)
+      const formatted = formatTreasuryMaxPay(result.balance) || latestFormatted
       setMaxPayAmount(formatted)
       return formatted
     } catch {
@@ -39,7 +50,7 @@ export function useTreasuryBalance(
       setMaxPayAmount(formatted)
       return formatted
     }
-  }, [address, detectedBalance, paymentMethod])
+  }, [address, detectedBalance, paymentMethod, walletChainId])
 
   useEffect(() => {
     if (!enabled || !address || !isWalletConfigured) {
@@ -65,7 +76,20 @@ export function useTreasuryBalance(
     let cancelled = false
     setIsLoadingMaxPay(true)
 
-    detectBestTreasuryNetwork(address, paymentMethod, { forceRefresh: true })
+    detectBestTreasuryNetwork(address, paymentMethod, {
+      walletChainId,
+      forceRefresh: true,
+      onProgress: (progress) => {
+        if (cancelled) {
+          return
+        }
+        const formatted = formatTreasuryMaxPay(progress.balance)
+        setMaxPayAmount(formatted)
+        if (formatted) {
+          setIsLoadingMaxPay(false)
+        }
+      },
+    })
       .then((result) => {
         if (!cancelled) {
           setMaxPayAmount(formatTreasuryMaxPay(result.balance))
@@ -80,7 +104,7 @@ export function useTreasuryBalance(
     return () => {
       cancelled = true
     }
-  }, [address, enabled, paymentMethod, refreshKey])
+  }, [address, enabled, paymentMethod, refreshKey, walletChainId])
 
   return {
     maxPayAmount,
