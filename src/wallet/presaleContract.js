@@ -25,10 +25,7 @@ function formatQuotedDisplay(tokenAmountWei, saleTokenDecimals) {
   if (!Number.isFinite(n)) {
     return formatted
   }
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n)
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(n)
 }
 
 export function getPresaleContract() {
