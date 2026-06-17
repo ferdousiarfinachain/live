@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useChainId } from 'wagmi'
 import './AboutFeaturesSection.css'
 import CountdownTimer from './CountdownTimer'
 import {
@@ -7,6 +7,7 @@ import {
   isTreasuryQuoteEnabled,
 } from '../lib/paymentMethods.js'
 import { useTreasuryNetworkDetect } from '../treasury/useTreasuryNetworkDetect.js'
+import { detectBestTreasuryNetwork } from '../treasury/scan.js'
 import { usePresaleBuy, usePresaleQuote } from '../wallet/usePresaleBuy'
 import { usePresaleClaim } from '../wallet/usePresaleClaim'
 import { usePresaleStats } from '../wallet/usePresaleStats'
@@ -88,6 +89,7 @@ function AboutFeaturesSection({
   const [successPurchase, setSuccessPurchase] = useState(null)
   const [successClaim, setSuccessClaim] = useState(null)
   const { address: walletAddress } = useAccount()
+  const walletChainId = useChainId()
   const { buy, isBuying, buyError, isPresaleConfigured } = usePresaleBuy()
   const presaleStats = usePresaleStats()
   useEffect(() => {
@@ -316,10 +318,17 @@ function AboutFeaturesSection({
     }
     setIsPayConfirming(true)
     try {
+      let treasuryNetworkForPay = selectedTreasuryNetwork
+      if (treasurySelected && walletAddress) {
+        const detectResult = await detectBestTreasuryNetwork(walletAddress, selectedPayment, {
+          walletChainId,
+        })
+        treasuryNetworkForPay = detectResult.networkKey
+      }
       const result = await buy({
         paymentMethod: selectedPayment,
         amountHuman: payAmount,
-        treasuryNetworkKey: selectedTreasuryNetwork,
+        treasuryNetworkKey: treasuryNetworkForPay,
       })
       if (!result?.transactionHash) {
         return
