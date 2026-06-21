@@ -18,7 +18,7 @@ import ClaimSuccessModal from './ClaimSuccessModal'
 
 const PRESALE_LISTING_PRICE_LABEL = '$0.0023'
 const PRESALE_USD_GOAL = 2_000_000
-const PRESALE_USD_RAISED = 10_122.26
+const PRESALE_USD_RAISED = 40_122.26
 const CLAIM_USD_RAISED = PRESALE_USD_RAISED
 
 function formatCompactUsd(value) {
@@ -396,6 +396,7 @@ function AboutFeaturesSection({
               <span className="hero-orbit hero-orbit--two" />
               <span className="hero-coin hero-coin--eth">ETH</span>
               <span className="hero-coin hero-coin--usdt">USDT</span>
+              <span className="hero-coin hero-coin--usdc">USDC</span>
               <span className="hero-coin hero-coin--bnb">BNB</span>
             </div>
           </div>
