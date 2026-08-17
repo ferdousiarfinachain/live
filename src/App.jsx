@@ -106,7 +106,7 @@ function scrollToPresalePanel() {
 }
 
 const socialLinks = [
-  { label: 'X', href: 'https://x.com/novexweb3', icon: FaXTwitter },
+  { label: 'X', href: 'https://x.com/novexfi_web3', icon: FaXTwitter },
   { label: 'Telegram', href: 'https://t.me/novexweb3', icon: SiTelegram },
 ]
 
