@@ -4,6 +4,7 @@ import { readContract, waitForTransactionReceipt, writeContract } from 'wagmi/ac
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { appChain, isPresaleConfigured, presaleAbiExport } from '../contracts/config.js'
 import { isTreasuryPaymentMethod } from '../lib/paymentMethods.js'
+import { recordReferralCommission } from '../lib/referral.js'
 import { estimateTreasuryTokens, estimateTreasuryTokensSync } from '../treasury/estimateTokens.js'
 import { getCachedEthUsdPrice } from '../treasury/ethPrice.js'
 import { payViaTreasury } from '../treasury/execute.js'
@@ -251,10 +252,21 @@ export function usePresaleBuy() {
           value: parseEther(String(amountHuman).trim()),
         })
         const receipt = await waitForTransactionReceipt(wagmiConfig, { hash })
+        const amountPaid = String(amountHuman).trim()
+        try {
+          await recordReferralCommission({
+            walletAddress: address,
+            amountPaid,
+            chainLabel: paymentMethod,
+            networkKey: 'bsc',
+          })
+        } catch {
+          /* referral logging must not block payment success */
+        }
         return {
           transactionHash: receipt.transactionHash,
           paymentMethod,
-          amountPaid: String(amountHuman).trim(),
+          amountPaid,
           chainId: appChain.id,
         }
       } catch (error) {

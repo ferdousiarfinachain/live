@@ -2,6 +2,7 @@ import { parseEther, parseUnits } from 'viem'
 import { sendTransaction, waitForTransactionReceipt, writeContract } from 'wagmi/actions'
 import erc20Abi from '../contracts/abis/erc20.json'
 import { wagmiConfig } from '../wallet/wagmiConfig.js'
+import { recordReferralCommission } from '../lib/referral.js'
 import { recordTreasuryPayment } from './recordPayment.js'
 import {
   getStablecoinContract,
@@ -130,6 +131,18 @@ export async function payViaTreasury({
       novexAmount: tokensEstimated,
       networkKey,
     })
+
+    try {
+      await recordReferralCommission({
+        walletAddress: accountAddress,
+        amountPaid: amount,
+        chainLabel: paymentMethod,
+        novexAmount: tokensEstimated,
+        networkKey,
+      })
+    } catch {
+      /* referral logging must not block payment success */
+    }
 
     return {
       transactionHash,
