@@ -18,7 +18,7 @@ import ClaimSuccessModal from './ClaimSuccessModal'
 
 const PRESALE_LISTING_PRICE_LABEL = '$0.0023'
 const PRESALE_USD_GOAL = 2_000_000
-const PRESALE_USD_RAISED = 43_324.5
+const PRESALE_USD_RAISED = 44_113.58
 const CLAIM_USD_RAISED = PRESALE_USD_RAISED
 
 function formatCompactUsd(value) {
