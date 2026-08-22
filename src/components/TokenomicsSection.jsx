@@ -108,38 +108,38 @@ function allocationByLabel(label) {
 
 const VESTING = [
   {
-    title: 'Airdrop',
-    detail: '12 months linear',
+    title: 'Pre-sale (15%)',
+    detail: 'Initial unlock at TGE with automated smart contract vesting for market stability',
     barClass: 'tokenomics-vesting__bar--lime',
   },
   {
-    title: 'Early Investors',
-    detail: '10% at TGE and then linear vesting 36 months',
+    title: 'Early Investors (10%)',
+    detail: 'Strategic milestone-based distribution secured via institutional smart contracts',
     barClass: 'tokenomics-vesting__bar--mid',
   },
   {
-    title: 'Treasury Reserve',
-    detail: '36 months linear',
+    title: 'Liquidity and Pools (25%)',
+    detail: '100% Permanently Locked & Verified on decentralized third-party liquidity lockers',
     barClass: 'tokenomics-vesting__bar--olive',
   },
   {
-    title: 'Pre-sale',
-    detail: '30% at TGE and then linear vesting over 9 months',
+    title: 'Treasury Reserve (10%)',
+    detail: '100% Secured via Gnosis Multi-Sig and multi-signature governance protocols',
     barClass: 'tokenomics-vesting__bar--mid',
   },
   {
-    title: 'Marketing',
-    detail: '36 months linear',
+    title: 'Airdrop (10%)',
+    detail: 'Phased community distribution matrix to safeguard against immediate market dumps',
     barClass: 'tokenomics-vesting__bar--olive',
   },
   {
-    title: 'Team',
-    detail: '12 month cliff, then linear vesting over 48 months',
+    title: 'Team & Advisors (15%)',
+    detail: 'Smart-locked with initial cliff period to align with long-term ecosystem vision',
     barClass: 'tokenomics-vesting__bar--mid',
   },
   {
-    title: 'Liquidity and Pools',
-    detail: 'Available at TGE for market making and DEX/CEX liquidity.',
+    title: 'Marketing & Ecosystem (15%)',
+    detail: 'Dynamic linear vesting mapped directly to active growth and project expansion',
     barClass: 'tokenomics-vesting__bar--olive-dark',
   },
 ]
